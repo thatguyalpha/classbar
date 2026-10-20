@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Clean circular badge -->
+    <path
+        android:fillColor="#2A2540"
+        android:strokeColor="#D0BCFF"
+        android:strokeWidth="2.4"
+        android:pathData="M54,54m-29,0a29,29 0,1 1,58 0a29,29 0,1 1,-58 0" />
+    <!-- Geometric "DAY" on top row (y=36..48) -->
+    <!-- 'D' -->
+    <path
+        android:fillColor="#EADDFF"
+        android:fillType="evenOdd"
+        android:pathData="M35,36h6a6,6 0,0 1,0 12h-6z M37.5,38.4v7.2h3.2a3.6,3.6 0,0 0,0 -7.2z" />
+    <!-- 'A' -->
+    <path
+        android:fillColor="#EADDFF"
+        android:fillType="evenOdd"
+        android:pathData="M52.5,36l5,12h-2.6l-1,-2.6h-4.8l-1,2.6h-2.6l5,-12z M51.5,39.2l-1.5,4h3z" />
+    <!-- 'Y' -->
+    <path
+        android:fillColor="#EADDFF"
+        android:pathData="M59,36h2.7l2.8,4.8l2.8,-4.8h2.7l-4.2,7v5h-2.6v-5z" />
+    <!-- Thin horizontal divider line -->
+    <path
+        android:fillColor="#D0BCFF"
+        android:pathData="M34,52.2h40v1.6h-40z" />
+    <!-- Geometric "14" on bottom row (y=57..72) -->
+    <!-- '1' -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,57h5.2v15h-3.2v-12.2h-2z" />
+    <!-- '4' -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M58.5,57h3v9.5h2.2v2.6h-2.2v2.9h-3v-2.9h-6.5v-2.4l6.5,-9.7z M58.5,61.2l-3.7,5.3h3.7z" />
+</vector>

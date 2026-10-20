@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DayAndDate"
+rootProject.name = "ClassBar"
 include(":app")
