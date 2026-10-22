@@ -240,4 +240,50 @@ class ClassBarTest {
         val customEx = UnauthorizedException("Custom unauthorized")
         assertEquals("Custom unauthorized", customEx.message)
     }
+
+    @Test
+    fun scheduleCacheAndCountdownResolution() {
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val mockJson = """
+            {
+              "scheduleHours": [
+                {
+                  "school_hour": 1,
+                  "from_time": "00:00",
+                  "to_time": "23:59",
+                  "course_name": "Математика",
+                  "teacher_name": "Светлана Петкова",
+                  "room_name": "306 (Етаж 3)",
+                  "is_free_hour": 0
+                }
+              ]
+            }
+        """.trimIndent()
+
+        appPreferences.saveScheduleCache(todayStr, mockJson)
+        val loaded = appPreferences.loadScheduleCache(todayStr)
+        assertEquals(mockJson, loaded)
+
+        // When countdown is enabled and lesson is active (00:00 - 23:59 covers all day)
+        val settingsCountdown = IconSettings(isEnabled = true, countdownEnabled = true)
+        val (iconTextCountdown, titleCountdown) = ClassBarService.resolveUpcomingLessonIconAndTitle(context, settingsCountdown)
+        assertTrue(iconTextCountdown.all { it.isDigit() })
+        assertEquals("306 • Математика • СП", titleCountdown)
+
+        // When countdown is disabled
+        val settingsRoom = IconSettings(isEnabled = true, countdownEnabled = false)
+        val (iconTextRoom, titleRoom) = ClassBarService.resolveUpcomingLessonIconAndTitle(context, settingsRoom)
+        assertEquals("306", iconTextRoom)
+        assertEquals("306 • Математика • СП", titleRoom)
+    }
+
+    @Test
+    fun mainViewModel_previewCountdownMinutes() {
+        val viewModel = MainViewModel(context, appPreferences)
+        assertEquals("35", viewModel.previewCountdownMinutes.value)
+        assertNotNull(viewModel.previewCountdownBitmap.value)
+
+        viewModel.setPreviewCountdownMinutes("15")
+        assertEquals("15", viewModel.previewCountdownMinutes.value)
+    }
 }

@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -46,6 +47,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
@@ -786,6 +789,11 @@ fun LessonCardItem(lesson: Lesson) {
 fun IconTab(viewModel: MainViewModel) {
     val settings by viewModel.settings.collectAsState()
     val previewBitmap by viewModel.previewBitmap.collectAsState()
+    val previewCountdownMinutes by viewModel.previewCountdownMinutes.collectAsState()
+    val previewCountdownBitmap by viewModel.previewCountdownBitmap.collectAsState()
+
+    var isRoomPreviewExpanded by rememberSaveable { mutableStateOf(true) }
+    var isCountdownPreviewExpanded by rememberSaveable { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -832,7 +840,7 @@ fun IconTab(viewModel: MainViewModel) {
             }
         }
 
-        // 2. Bounding Box & Scale Preview Box
+        // 2. Collapsable Status Bar Room Preview Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -840,106 +848,279 @@ fun IconTab(viewModel: MainViewModel) {
             )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Status Bar Room Preview",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .clickable { isRoomPreviewExpanded = !isRoomPreviewExpanded }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // 96x96 Bounding Box Preview
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "96×96 Canvas",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "Status Bar Room Preview",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Room number preview (#${settings.previewRoom})",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .border(
-                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                bitmap = previewBitmap.asImageBitmap(),
-                                contentDescription = "96x96 Canvas Preview",
-                                modifier = Modifier.size(96.dp)
-                            )
-                        }
                     }
-
-                    // Simulated Status Bar Clock strip preview
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Status Bar Scale",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    IconButton(onClick = { isRoomPreviewExpanded = !isRoomPreviewExpanded }) {
+                        Icon(
+                            imageVector = if (isRoomPreviewExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isRoomPreviewExpanded) "Collapse Room Preview" else "Expand Room Preview"
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .height(96.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF0F0F14))
-                                .border(BorderStroke(1.dp, Color(0xFF2E2E38)), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 14.dp),
-                            contentAlignment = Alignment.Center
+                    }
+                }
+
+                AnimatedVisibility(visible = isRoomPreviewExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            // 96x96 Bounding Box Preview
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "9:30",
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = "96×96 Canvas",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Image(
-                                    bitmap = previewBitmap.asImageBitmap(),
-                                    contentDescription = "Status Bar Preview",
-                                    modifier = Modifier.size(22.dp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .border(
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        bitmap = previewBitmap.asImageBitmap(),
+                                        contentDescription = "96x96 Canvas Preview",
+                                        modifier = Modifier.size(96.dp)
+                                    )
+                                }
+                            }
+
+                            // Simulated Status Bar Clock strip preview
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "Status Bar Scale",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .height(96.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF0F0F14))
+                                        .border(BorderStroke(1.dp, Color(0xFF2E2E38)), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "9:30",
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Image(
+                                            bitmap = previewBitmap.asImageBitmap(),
+                                            contentDescription = "Status Bar Preview",
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Preview Room Override Input
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = settings.previewRoom,
+                                onValueChange = { viewModel.setPreviewRoom(it) },
+                                label = { Text("Preview Room #") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedButton(onClick = { viewModel.resetScalingDefaults() }) {
+                                    Text("Reset Sliders")
+                                }
+                                OutlinedButton(onClick = { viewModel.resetPreviewRoom() }) {
+                                    Text("Reset Preview")
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
 
-                // Preview Room Override Input
+        // 3. Collapsable Minutes Left Countdown Preview Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .clickable { isCountdownPreviewExpanded = !isCountdownPreviewExpanded }
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    OutlinedTextField(
-                        value = settings.previewRoom,
-                        onValueChange = { viewModel.setPreviewRoom(it) },
-                        label = { Text("Preview Room #") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Minutes Left Countdown Preview",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Remaining minutes preview (${previewCountdownMinutes} min left)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { isCountdownPreviewExpanded = !isCountdownPreviewExpanded }) {
+                        Icon(
+                            imageVector = if (isCountdownPreviewExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isCountdownPreviewExpanded) "Collapse Countdown Preview" else "Expand Countdown Preview"
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = isCountdownPreviewExpanded) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        OutlinedButton(onClick = { viewModel.resetScalingDefaults() }) {
-                            Text("Reset Sliders")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 96x96 Bounding Box Preview
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "96×96 Canvas",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .border(
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        bitmap = previewCountdownBitmap.asImageBitmap(),
+                                        contentDescription = "96x96 Countdown Canvas Preview",
+                                        modifier = Modifier.size(96.dp)
+                                    )
+                                }
+                            }
+
+                            // Simulated Status Bar Clock strip preview
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "Status Bar Scale",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .height(96.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF0F0F14))
+                                        .border(BorderStroke(1.dp, Color(0xFF2E2E38)), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "9:30",
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Image(
+                                            bitmap = previewCountdownBitmap.asImageBitmap(),
+                                            contentDescription = "Status Bar Countdown Preview",
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        OutlinedButton(onClick = { viewModel.resetPreviewRoom() }) {
-                            Text("Reset Preview")
+
+                        // Preview Minutes Override Input
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = previewCountdownMinutes,
+                                onValueChange = { viewModel.setPreviewCountdownMinutes(it) },
+                                label = { Text("Test Minutes Left") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("40") }) {
+                                    Text("40m")
+                                }
+                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("15") }) {
+                                    Text("15m")
+                                }
+                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("5") }) {
+                                    Text("5m")
+                                }
+                            }
                         }
                     }
                 }
