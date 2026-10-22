@@ -1,3 +1,3 @@
-# ClassBar (Android Status Bar Utility)
+# ClassBar
 
-A lightweight native Android utility (Kotlin / Jetpack Compose) for custom status bar indicators and icons with adjustable typography, weight, and priority modes.
+Android app for monitoring upcoming classes using a Shkolo login.
