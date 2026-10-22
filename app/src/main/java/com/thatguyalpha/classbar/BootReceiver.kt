@@ -7,8 +7,9 @@ import android.content.Intent
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return
-        val settings = AppPreferences(context).loadSettings()
-        if (!settings.isEnabled) return
+        val prefs = AppPreferences(context)
+        val settings = prefs.loadSettings()
+        if (!settings.isEnabled || !prefs.isLoggedIn()) return
 
         when (action) {
             Intent.ACTION_BOOT_COMPLETED,
@@ -16,10 +17,8 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
-            Intent.ACTION_TIMEZONE_CHANGED,
-            DateNotificationService.ACTION_MIDNIGHT_ROLLOVER -> {
-                DateNotificationService.startOrRefresh(context)
-                DateNotificationService.scheduleNextMidnightRefresh(context)
+            Intent.ACTION_TIMEZONE_CHANGED -> {
+                ClassBarService.startOrRefresh(context)
             }
         }
     }

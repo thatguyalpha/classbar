@@ -21,140 +21,90 @@ enum class PriorityMode(val label: String, val description: String) {
 }
 
 enum class TapAction(val label: String, val description: String) {
-    OPEN_CALENDAR(
-        label = "Open Google Calendar",
-        description = "Launches Google Calendar when tapping the notification card."
-    ),
     OPEN_APP(
         label = "Open ClassBar",
-        description = "Opens ClassBar settings when tapping the notification card."
+        description = "Launches ClassBar to view the full timetable when tapped."
     ),
     DO_NOTHING(
-        label = "Do Nothing",
-        description = "Tapping the notification card performs no action."
+        label = "Do nothing",
+        description = "Notification has no tap action."
     )
 }
 
-enum class LauncherIconStyle(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val aliasClassName: String
-) {
-    ICON_1(
-        id = 1,
-        title = "Watch Aperture",
-        description = "Minimalist circle with two stacked horizontal pill cutout windows",
-        aliasClassName = "com.thatguyalpha.classbar.IconAlias1"
-    ),
-    ICON_2(
-        id = 2,
-        title = "Status Bar Pill",
-        description = "Minimalist top status bar corner frame showing 12:00 next to a stacked badge",
-        aliasClassName = "com.thatguyalpha.classbar.IconAlias2"
-    ),
-    ICON_3(
-        id = 3,
-        title = "Typographic Monogram",
-        description = "Clean circular badge containing geometric stacked DAY over 14",
-        aliasClassName = "com.thatguyalpha.classbar.IconAlias3"
-    );
+enum class LauncherIconStyle(val id: Int, val aliasName: String, val label: String) {
+    STYLE_1(1, "MainActivityAlias1", "Style 1 (Standard)"),
+    STYLE_2(2, "MainActivityAlias2", "Style 2 (Classic)"),
+    STYLE_3(3, "MainActivityAlias3", "Style 3 (Vibrant)");
 
     companion object {
-        fun fromId(id: Int): LauncherIconStyle = entries.find { it.id == id } ?: ICON_1
+        fun fromId(id: Int): LauncherIconStyle = entries.firstOrNull { it.id == id } ?: STYLE_1
     }
 }
 
 data class IconSettings(
-    val isEnabled: Boolean = AppPreferences.DEFAULT_ENABLED,
-    val line1Size: Float = AppPreferences.DEFAULT_LINE1_SIZE,
-    val line2Size: Float = AppPreferences.DEFAULT_LINE2_SIZE,
-    val line1Y: Float = AppPreferences.DEFAULT_LINE1_Y,
-    val line2Y: Float = AppPreferences.DEFAULT_LINE2_Y,
+    val isEnabled: Boolean = true,
+    val fontSize: Float = AppPreferences.DEFAULT_FONT_SIZE,
+    val yPosition: Float = AppPreferences.DEFAULT_Y_POSITION,
     val textScaleX: Float = AppPreferences.DEFAULT_TEXT_SCALE_X,
     val boldness: Float = AppPreferences.DEFAULT_BOLDNESS,
-    val stressTestWidestDate: Boolean = false,
     val priorityMode: PriorityMode = PriorityMode.FORCED_HIGH,
-    val tapAction: TapAction = TapAction.OPEN_CALENDAR,
-    val launcherIconStyle: LauncherIconStyle = LauncherIconStyle.ICON_1
+    val tapAction: TapAction = TapAction.OPEN_APP,
+    val launcherIconStyle: LauncherIconStyle = LauncherIconStyle.STYLE_1,
+    val previewRoom: String = AppPreferences.DEFAULT_PREVIEW_ROOM,
+    val countdownEnabled: Boolean = false
 )
 
-class AppPreferences(context: Context) {
-    private val appContext = context.applicationContext
-    val prefs: SharedPreferences =
-        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class AppPreferences(private val context: Context) {
 
-    init {
-        ensureCalibratedV2Defaults()
-    }
-
-    fun ensureCalibratedV2Defaults() {
-        if (!prefs.getBoolean(KEY_CALIBRATED_V2, false)) {
-            prefs.edit()
-                .putFloat(KEY_LINE1_SIZE, DEFAULT_LINE1_SIZE)
-                .putFloat(KEY_LINE2_SIZE, DEFAULT_LINE2_SIZE)
-                .putFloat(KEY_LINE1_Y, DEFAULT_LINE1_Y)
-                .putFloat(KEY_LINE2_Y, DEFAULT_LINE2_Y)
-                .putFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X)
-                .putFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS)
-                .putBoolean(KEY_CALIBRATED_V2, true)
-                .apply()
-        }
-    }
+    val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun loadSettings(): IconSettings {
-        ensureCalibratedV2Defaults()
         val priorityName = prefs.getString(KEY_PRIORITY_MODE, PriorityMode.FORCED_HIGH.name)
             ?: PriorityMode.FORCED_HIGH.name
-        val tapActionName = prefs.getString(KEY_TAP_ACTION, TapAction.OPEN_CALENDAR.name)
-            ?: TapAction.OPEN_CALENDAR.name
-        val iconId = prefs.getInt(KEY_LAUNCHER_ICON, LauncherIconStyle.ICON_1.id)
+        val tapActionName = prefs.getString(KEY_TAP_ACTION, TapAction.OPEN_APP.name)
+            ?: TapAction.OPEN_APP.name
+        val iconId = prefs.getInt(KEY_LAUNCHER_ICON_STYLE, LauncherIconStyle.STYLE_1.id)
 
         return IconSettings(
-            isEnabled = prefs.getBoolean(KEY_ENABLED, DEFAULT_ENABLED),
-            line1Size = prefs.getFloat(KEY_LINE1_SIZE, DEFAULT_LINE1_SIZE).coerceIn(MIN_LINE1_SIZE, MAX_LINE1_SIZE),
-            line2Size = prefs.getFloat(KEY_LINE2_SIZE, DEFAULT_LINE2_SIZE).coerceIn(MIN_LINE2_SIZE, MAX_LINE2_SIZE),
-            line1Y = prefs.getFloat(KEY_LINE1_Y, DEFAULT_LINE1_Y).coerceIn(MIN_LINE1_Y, MAX_LINE1_Y),
-            line2Y = prefs.getFloat(KEY_LINE2_Y, DEFAULT_LINE2_Y).coerceIn(MIN_LINE2_Y, MAX_LINE2_Y),
-            textScaleX = prefs.getFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X).coerceIn(MIN_TEXT_SCALE_X, MAX_TEXT_SCALE_X),
-            boldness = prefs.getFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS).coerceIn(MIN_BOLDNESS, MAX_BOLDNESS),
-            stressTestWidestDate = prefs.getBoolean(KEY_STRESS_TEST_WIDEST, false),
+            isEnabled = prefs.getBoolean(KEY_ENABLED, true),
+            fontSize = prefs.getFloat(KEY_FONT_SIZE, DEFAULT_FONT_SIZE),
+            yPosition = prefs.getFloat(KEY_Y_POSITION, DEFAULT_Y_POSITION),
+            textScaleX = prefs.getFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X),
+            boldness = prefs.getFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS),
             priorityMode = runCatching { PriorityMode.valueOf(priorityName) }.getOrDefault(PriorityMode.FORCED_HIGH),
-            tapAction = runCatching { TapAction.valueOf(tapActionName) }.getOrDefault(TapAction.OPEN_CALENDAR),
-            launcherIconStyle = LauncherIconStyle.fromId(iconId)
+            tapAction = runCatching { TapAction.valueOf(tapActionName) }.getOrDefault(TapAction.OPEN_APP),
+            launcherIconStyle = LauncherIconStyle.fromId(iconId),
+            previewRoom = prefs.getString(KEY_PREVIEW_ROOM, DEFAULT_PREVIEW_ROOM) ?: DEFAULT_PREVIEW_ROOM,
+            countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN_ENABLED, false)
         )
+    }
+
+    fun setCountdownEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_COUNTDOWN_ENABLED, enabled).apply()
     }
 
     fun setEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
     }
 
-    fun setLine1Size(size: Float) {
-        prefs.edit().putFloat(KEY_LINE1_SIZE, size.coerceIn(MIN_LINE1_SIZE, MAX_LINE1_SIZE)).apply()
+    fun setFontSize(size: Float) {
+        prefs.edit().putFloat(KEY_FONT_SIZE, size.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)).apply()
     }
 
-    fun setLine2Size(size: Float) {
-        prefs.edit().putFloat(KEY_LINE2_SIZE, size.coerceIn(MIN_LINE2_SIZE, MAX_LINE2_SIZE)).apply()
+    fun setYPosition(y: Float) {
+        prefs.edit().putFloat(KEY_Y_POSITION, y.coerceIn(MIN_Y_POSITION, MAX_Y_POSITION)).apply()
     }
 
-    fun setLine1Y(y: Float) {
-        prefs.edit().putFloat(KEY_LINE1_Y, y.coerceIn(MIN_LINE1_Y, MAX_LINE1_Y)).apply()
-    }
-
-    fun setLine2Y(y: Float) {
-        prefs.edit().putFloat(KEY_LINE2_Y, y.coerceIn(MIN_LINE2_Y, MAX_LINE2_Y)).apply()
-    }
-
-    fun setTextScaleX(scaleX: Float) {
-        prefs.edit().putFloat(KEY_TEXT_SCALE_X, scaleX.coerceIn(MIN_TEXT_SCALE_X, MAX_TEXT_SCALE_X)).apply()
+    fun setTextScaleX(scale: Float) {
+        prefs.edit().putFloat(KEY_TEXT_SCALE_X, scale.coerceIn(MIN_TEXT_SCALE_X, MAX_TEXT_SCALE_X)).apply()
     }
 
     fun setBoldness(boldness: Float) {
         prefs.edit().putFloat(KEY_BOLDNESS, boldness.coerceIn(MIN_BOLDNESS, MAX_BOLDNESS)).apply()
     }
 
-    fun setStressTestWidestDate(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_STRESS_TEST_WIDEST, enabled).apply()
+    fun setPreviewRoom(room: String) {
+        prefs.edit().putString(KEY_PREVIEW_ROOM, room.trim().take(6)).apply()
     }
 
     fun setPriorityMode(mode: PriorityMode) {
@@ -165,81 +115,113 @@ class AppPreferences(context: Context) {
         prefs.edit().putString(KEY_TAP_ACTION, action.name).apply()
     }
 
-    fun setLauncherIconStyle(style: LauncherIconStyle) {
-        prefs.edit().putInt(KEY_LAUNCHER_ICON, style.id).apply()
-        applyLauncherIconAlias(appContext, style)
-    }
-
-    fun resetScalingDefaults() {
+    fun resetDefaults() {
         prefs.edit()
-            .putFloat(KEY_LINE1_SIZE, DEFAULT_LINE1_SIZE)
-            .putFloat(KEY_LINE2_SIZE, DEFAULT_LINE2_SIZE)
-            .putFloat(KEY_LINE1_Y, DEFAULT_LINE1_Y)
-            .putFloat(KEY_LINE2_Y, DEFAULT_LINE2_Y)
+            .putFloat(KEY_FONT_SIZE, DEFAULT_FONT_SIZE)
+            .putFloat(KEY_Y_POSITION, DEFAULT_Y_POSITION)
             .putFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X)
             .putFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS)
-            .putBoolean(KEY_CALIBRATED_V2, true)
+            .putString(KEY_PREVIEW_ROOM, DEFAULT_PREVIEW_ROOM)
             .apply()
     }
 
+    fun setLauncherIconStyle(style: LauncherIconStyle) {
+        prefs.edit().putInt(KEY_LAUNCHER_ICON_STYLE, style.id).apply()
+        applyLauncherIcon(style)
+    }
+
+    fun applyLauncherIcon(activeStyle: LauncherIconStyle) {
+        val pm = context.packageManager
+        val pkg = context.packageName
+
+        LauncherIconStyle.entries.forEach { style ->
+            val comp = ComponentName(pkg, "$pkg.${style.aliasName}")
+            val newState = if (style == activeStyle) {
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            }
+            runCatching {
+                pm.setComponentEnabledSetting(comp, newState, PackageManager.DONT_KILL_APP)
+            }
+        }
+    }
+
+    // --- Shkolo Session Persistence ---
+
+    fun saveSession(token: String, pupilId: Long, pupilName: String, className: String) {
+        prefs.edit()
+            .putString(KEY_TOKEN, token)
+            .putLong(KEY_PUPIL_ID, pupilId)
+            .putString(KEY_PUPIL_NAME, pupilName)
+            .putString(KEY_CLASS_NAME, className)
+            .apply()
+    }
+
+    fun clearSession() {
+        prefs.edit()
+            .remove(KEY_TOKEN)
+            .remove(KEY_PUPIL_ID)
+            .remove(KEY_PUPIL_NAME)
+            .remove(KEY_CLASS_NAME)
+            .apply()
+    }
+
+    fun isLoggedIn(): Boolean = !prefs.getString(KEY_TOKEN, null).isNullOrBlank()
+
+    fun getSavedToken(): String? = prefs.getString(KEY_TOKEN, null)
+
+    fun getSavedPupilId(): Long = prefs.getLong(KEY_PUPIL_ID, 0L)
+
+    fun getSavedPupilName(): String = prefs.getString(KEY_PUPIL_NAME, "") ?: ""
+
+    fun getSavedClassName(): String = prefs.getString(KEY_CLASS_NAME, "") ?: ""
+
+    fun saveScheduleCache(date: String, json: String) {
+        prefs.edit().putString(KEY_SCHEDULE_CACHE_PREFIX + date, json).apply()
+    }
+
+    fun loadScheduleCache(date: String): String? {
+        return prefs.getString(KEY_SCHEDULE_CACHE_PREFIX + date, null)
+    }
+
     companion object {
-        const val PREFS_NAME = "day_and_date_prefs"
+        const val PREFS_NAME = "classbar_prefs"
 
-        const val KEY_CALIBRATED_V2 = "prefs_calibrated_v2"
-        const val KEY_ENABLED = "pref_service_enabled"
-        const val KEY_LINE1_SIZE = "pref_line1_size"
-        const val KEY_LINE2_SIZE = "pref_line2_size"
-        const val KEY_LINE1_Y = "pref_line1_y"
-        const val KEY_LINE2_Y = "pref_line2_y"
-        const val KEY_TEXT_SCALE_X = "pref_text_scale_x"
-        const val KEY_BOLDNESS = "pref_boldness"
-        const val KEY_STRESS_TEST_WIDEST = "pref_stress_test_widest"
-        const val KEY_PRIORITY_MODE = "pref_priority_mode"
-        const val KEY_TAP_ACTION = "pref_tap_action"
-        const val KEY_LAUNCHER_ICON = "pref_launcher_icon"
+        const val KEY_ENABLED = "key_enabled"
+        const val KEY_FONT_SIZE = "key_font_size"
+        const val KEY_Y_POSITION = "key_y_position"
+        const val KEY_TEXT_SCALE_X = "key_text_scale_x"
+        const val KEY_BOLDNESS = "key_boldness"
+        const val KEY_PRIORITY_MODE = "key_priority_mode"
+        const val KEY_TAP_ACTION = "key_tap_action"
+        const val KEY_LAUNCHER_ICON_STYLE = "key_launcher_icon_style"
+        const val KEY_PREVIEW_ROOM = "key_preview_room"
+        const val KEY_COUNTDOWN_ENABLED = "key_countdown_enabled"
 
-        const val DEFAULT_ENABLED = false
-        const val DEFAULT_LINE1_SIZE = 46f
-        const val MIN_LINE1_SIZE = 20f
-        const val MAX_LINE1_SIZE = 52f
+        const val KEY_TOKEN = "key_token"
+        const val KEY_PUPIL_ID = "key_pupil_id"
+        const val KEY_PUPIL_NAME = "key_pupil_name"
+        const val KEY_CLASS_NAME = "key_class_name"
+        const val KEY_SCHEDULE_CACHE_PREFIX = "schedule_cache_"
 
-        const val DEFAULT_LINE2_SIZE = 46f
-        const val MIN_LINE2_SIZE = 18f
-        const val MAX_LINE2_SIZE = 48f
+        // Sliders config
+        const val DEFAULT_FONT_SIZE = 54f
+        const val MIN_FONT_SIZE = 24f
+        const val MAX_FONT_SIZE = 72f
 
-        const val DEFAULT_LINE1_Y = 40f
-        const val MIN_LINE1_Y = 20f
-        const val MAX_LINE1_Y = 56f
+        const val DEFAULT_Y_POSITION = 68f
+        const val MIN_Y_POSITION = 20f
+        const val MAX_Y_POSITION = 90f
 
-        const val DEFAULT_LINE2_Y = 83f
-        const val MIN_LINE2_Y = 56f
-        const val MAX_LINE2_Y = 94f
-
-        const val DEFAULT_TEXT_SCALE_X = 0.97f
+        const val DEFAULT_TEXT_SCALE_X = 0.95f
         const val MIN_TEXT_SCALE_X = 0.70f
-        const val MAX_TEXT_SCALE_X = 1.10f
+        const val MAX_TEXT_SCALE_X = 1.15f
 
         const val DEFAULT_BOLDNESS = 2.5f
         const val MIN_BOLDNESS = 0.0f
         const val MAX_BOLDNESS = 3.5f
 
-        fun applyLauncherIconAlias(context: Context, selectedStyle: LauncherIconStyle) {
-            val pm = context.packageManager
-            LauncherIconStyle.entries.forEach { style ->
-                val state = if (style == selectedStyle) {
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                } else {
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                }
-                val componentName = ComponentName(context.packageName, style.aliasClassName)
-                runCatching {
-                    pm.setComponentEnabledSetting(
-                        componentName,
-                        state,
-                        PackageManager.DONT_KILL_APP
-                    )
-                }
-            }
-        }
+        const val DEFAULT_PREVIEW_ROOM = "307"
     }
 }
