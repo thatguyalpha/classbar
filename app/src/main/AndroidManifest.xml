@@ -1,19 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
-
-    <queries>
-        <package android:name="com.google.android.calendar" />
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.APP_CALENDAR" />
-        </intent>
-    </queries>
 
     <application
         android:allowBackup="true"
@@ -23,19 +17,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ClassBar">
 
+        <!-- Default launcher alias -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:theme="@style/Theme.ClassBar" />
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ClassBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
-        <!-- Icon 1 ("Watch Aperture") - Default Enabled -->
+        <!-- Dynamic launcher icon alias 1 -->
         <activity-alias
-            android:name=".IconAlias1"
+            android:name=".MainActivityAlias1"
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_1"
-            android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_1_round"
             android:targetActivity=".MainActivity">
             <intent-filter>
@@ -44,13 +43,12 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Icon 2 ("Status Bar Pill") -->
+        <!-- Dynamic launcher icon alias 2 -->
         <activity-alias
-            android:name=".IconAlias2"
+            android:name=".MainActivityAlias2"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_2"
-            android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_2_round"
             android:targetActivity=".MainActivity">
             <intent-filter>
@@ -59,13 +57,12 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Icon 3 ("Typographic Monogram") -->
+        <!-- Dynamic launcher icon alias 3 -->
         <activity-alias
-            android:name=".IconAlias3"
+            android:name=".MainActivityAlias3"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_3"
-            android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_3_round"
             android:targetActivity=".MainActivity">
             <intent-filter>
@@ -74,20 +71,20 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Foreground Service holding persistent status bar room number icon -->
         <service
-            android:name=".DateNotificationService"
-            android:enabled="true"
+            android:name=".ClassBarService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Persistent 2-line day and date icon in the status bar" />
+                android:value="Displays upcoming classroom room number continuously in the status bar." />
         </service>
 
+        <!-- Accessibility Service for Dynamic Priority notification shade detection -->
         <service
             android:name=".ShadeDetectorService"
-            android:enabled="true"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
@@ -98,16 +95,16 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Device Boot & Clock Change Receiver -->
         <receiver
             android:name=".BootReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.DATE_CHANGED" />
-                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>

@@ -19,8 +19,8 @@ class ShadeDetectorService : AccessibilityService() {
 
         if (event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
             val eventPkg = event.packageName?.toString().orEmpty()
-            if (eventPkg != packageName && !DateNotificationService.isShadeOpen) {
-                DateNotificationService.onExternalNotificationPosted(this)
+            if (eventPkg != packageName && !ClassBarService.isShadeOpen) {
+                ClassBarService.onExternalNotificationPosted(this)
             }
             return
         }
@@ -31,7 +31,7 @@ class ShadeDetectorService : AccessibilityService() {
 
         val detectedShadeOpen = detectShadeOpen(event)
         if (detectedShadeOpen != null) {
-            DateNotificationService.onShadeVisibilityChanged(this, detectedShadeOpen)
+            ClassBarService.onShadeVisibilityChanged(this, detectedShadeOpen)
         }
     }
 
@@ -78,11 +78,11 @@ class ShadeDetectorService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        DateNotificationService.onShadeVisibilityChanged(this, false)
+        ClassBarService.onShadeVisibilityChanged(this, false)
     }
 
     override fun onDestroy() {
-        DateNotificationService.onShadeVisibilityChanged(this, false)
+        ClassBarService.onShadeVisibilityChanged(this, false)
         super.onDestroy()
     }
 
