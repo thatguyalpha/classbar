@@ -11,3 +11,4 @@ captures
 META-INF/
 *.apk
 *.aab
+.wip/

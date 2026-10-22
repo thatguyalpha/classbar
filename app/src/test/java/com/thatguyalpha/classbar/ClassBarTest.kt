@@ -19,9 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.ConscryptMode
-import java.util.Calendar
-import java.util.Locale
-import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -39,181 +36,198 @@ class ClassBarTest {
             .clear()
             .commit()
         appPreferences = AppPreferences(context)
-        DateNotificationService.isShadeOpen = false
+        ClassBarService.isShadeOpen = false
     }
 
     @Test
-    fun dateIconGenerator_renders96x96Argb8888AndFormatsDayNumberOnly() {
-        val calSingle = Calendar.getInstance(TimeZone.getDefault(), Locale.US).apply {
-            set(2026, Calendar.OCTOBER, 4, 12, 0, 0)
-        }
-        assertEquals("Sun", DateIconGenerator.formatDayOfWeek(calSingle.time))
-        assertEquals("4", DateIconGenerator.formatMonthAndDay(calSingle.time))
-
-        val calDouble = Calendar.getInstance(TimeZone.getDefault(), Locale.US).apply {
-            set(2026, Calendar.OCTOBER, 14, 12, 0, 0)
-        }
-        assertEquals("Wed", DateIconGenerator.formatDayOfWeek(calDouble.time))
-        assertEquals("14", DateIconGenerator.formatMonthAndDay(calDouble.time))
-
-        assertEquals("Wed", DateIconGenerator.STRESS_TEST_DAY)
-        assertEquals("29", DateIconGenerator.STRESS_TEST_DATE)
-
-        val bitmap = DateIconGenerator.generateBitmap(context, calDouble.time)
+    fun classBarIconGenerator_renders96x96Argb8888() {
+        val bitmap = ClassBarIconGenerator.renderRoomBitmap(
+            roomText = "307",
+            textSize = 54f,
+            yPosition = 68f,
+            textScaleX = 0.95f,
+            boldness = 2.5f
+        )
         assertEquals(96, bitmap.width)
         assertEquals(96, bitmap.height)
         assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
 
-        val iconCompat = DateIconGenerator.generateIconCompat(context, calDouble.time)
+        val iconCompat = ClassBarIconGenerator.generateIconCompat("307", appPreferences.loadSettings())
         assertNotNull(iconCompat)
     }
 
     @Test
-    fun preferencesAndViewModel_applyCalibratedV2DefaultsAndOneTimeMigration() {
-        // Simulate legacy pre-v2 preferences without prefs_calibrated_v2 flag
-        val rawPrefs = context.getSharedPreferences(AppPreferences.PREFS_NAME, Context.MODE_PRIVATE)
-        rawPrefs.edit()
-            .putFloat(AppPreferences.KEY_LINE1_SIZE, 36f)
-            .putFloat(AppPreferences.KEY_LINE2_SIZE, 30f)
-            .putFloat(AppPreferences.KEY_LINE1_Y, 38f)
-            .putFloat(AppPreferences.KEY_LINE2_Y, 80f)
-            .putFloat(AppPreferences.KEY_TEXT_SCALE_X, 0.90f)
-            .putFloat(AppPreferences.KEY_BOLDNESS, 1.2f)
-            .putBoolean(AppPreferences.KEY_CALIBRATED_V2, false)
-            .commit()
-
-        val migratedPreferences = AppPreferences(context)
-        val viewModel = MainViewModel(context, migratedPreferences)
-
-        val initial = viewModel.settings.value
-        assertTrue(rawPrefs.getBoolean(AppPreferences.KEY_CALIBRATED_V2, false))
-        assertEquals(46f, initial.line1Size, 0.001f)
-        assertEquals(46f, initial.line2Size, 0.001f)
-        assertEquals(40f, initial.line1Y, 0.001f)
-        assertEquals(83f, initial.line2Y, 0.001f)
-        assertEquals(0.97f, initial.textScaleX, 0.001f)
-        assertEquals(2.5f, initial.boldness, 0.001f)
-        assertFalse(initial.stressTestWidestDate)
-
-        viewModel.setLine1Size(48f)
-        viewModel.setLine2Size(44f)
-        viewModel.setLine1Y(42f)
-        viewModel.setLine2Y(85f)
-        viewModel.setTextScaleX(1.02f)
-        viewModel.setBoldness(3.0f)
-        viewModel.setStressTestWidestDate(true)
-
-        val updated = viewModel.settings.value
-        assertEquals(48f, updated.line1Size, 0.001f)
-        assertEquals(44f, updated.line2Size, 0.001f)
-        assertEquals(42f, updated.line1Y, 0.001f)
-        assertEquals(85f, updated.line2Y, 0.001f)
-        assertEquals(1.02f, updated.textScaleX, 0.001f)
-        assertEquals(3.0f, updated.boldness, 0.001f)
-        assertTrue(updated.stressTestWidestDate)
-
-        viewModel.resetScalingDefaults()
-        val reset = viewModel.settings.value
-        assertEquals(46f, reset.line1Size, 0.001f)
-        assertEquals(46f, reset.line2Size, 0.001f)
-        assertEquals(40f, reset.line1Y, 0.001f)
-        assertEquals(83f, reset.line2Y, 0.001f)
-        assertEquals(0.97f, reset.textScaleX, 0.001f)
-        assertEquals(2.5f, reset.boldness, 0.001f)
+    fun shkoloApi_extractRoomNumber() {
+        assertEquals("307", ShkoloApi.extractRoomNumber("307 (Етаж 3)"))
+        assertEquals("24", ShkoloApi.extractRoomNumber("Каб. 24"))
+        assertEquals("102", ShkoloApi.extractRoomNumber("102"))
+        assertEquals("СЗ", ShkoloApi.extractRoomNumber("Спортна зала"))
+        assertEquals("—", ShkoloApi.extractRoomNumber(""))
     }
 
     @Test
-    fun notificationService_usesChannelForcedMaxV3AndFutureWhenInHighPriority() {
-        val manager = context.getSystemService(NotificationManager::class.java)
-        DateNotificationService.ensureNotificationChannels(context, manager)
+    fun shkoloApi_extractTeacherInitials() {
+        assertEquals("ЗН", ShkoloApi.extractTeacherInitials("Зефир Ников"))
+        assertEquals("АС", ShkoloApi.extractTeacherInitials("Анелия Стоянова"))
+        assertEquals("JD", ShkoloApi.extractTeacherInitials("John Doe"))
+        assertEquals("", ShkoloApi.extractTeacherInitials(""))
+    }
 
-        assertNull(manager.getNotificationChannel("channel_forced_high"))
-        val highChannel = manager.getNotificationChannel("channel_forced_max_v3")
-        val silentChannel = manager.getNotificationChannel(DateNotificationService.CHANNEL_FORCED_SILENT)
+    @Test
+    fun shkoloApi_findUpcomingLesson() {
+        val lessons = listOf(
+            Lesson(
+                hourNumber = 1,
+                fromTime = "12:35",
+                toTime = "13:15",
+                courseName = "Волейбол",
+                shortCourseName = "ФВС",
+                teacherName = "Зефир Ников",
+                roomName = "Спортна зала",
+                isFreeHour = false,
+                isTaken = false,
+                group = null
+            ),
+            Lesson(
+                hourNumber = 2,
+                fromTime = "13:25",
+                toTime = "14:05",
+                courseName = "Операционни системи",
+                shortCourseName = "ОС",
+                teacherName = "Анелия Стоянова",
+                roomName = "307 (Етаж 3)",
+                isFreeHour = false,
+                isTaken = false,
+                group = null
+            )
+        )
+
+        // At 12:40, hour 1 is active (toTime 13:15 >= 12:40)
+        val active1 = ShkoloApi.findUpcomingLesson(lessons, "12:40")
+        assertNotNull(active1)
+        assertEquals(1, active1?.hourNumber)
+        assertEquals("СЗ", active1?.roomNumber)
+
+        // At 13:20 (during break), hour 2 is next (toTime 14:05 >= 13:20)
+        val next2 = ShkoloApi.findUpcomingLesson(lessons, "13:20")
+        assertNotNull(next2)
+        assertEquals(2, next2?.hourNumber)
+        assertEquals("307", next2?.roomNumber)
+
+        // At 15:00 (after school), no more upcoming lessons
+        val afterSchool = ShkoloApi.findUpcomingLesson(lessons, "15:00")
+        assertNull(afterSchool)
+    }
+
+    @Test
+    fun shkoloApi_parseLessonsJson() {
+        val rawJson = """
+            {
+              "scheduleHours": [
+                {
+                  "school_hour": 1,
+                  "from_time": "12:35",
+                  "to_time": "13:15",
+                  "course_name": "Волейбол",
+                  "short_course_name": "ФВС",
+                  "teacher_name": "Зефир Ников",
+                  "room_name": "Спортна зала",
+                  "is_free_hour": 0
+                },
+                {
+                  "school_hour": 2,
+                  "from_time": "13:25",
+                  "to_time": "14:05",
+                  "course_name": "Операционни системи",
+                  "short_course_name": "ОС",
+                  "teacher_name": "Анелия Стоянова",
+                  "room_name": "307",
+                  "is_free_hour": 0
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val parsed = ShkoloApi.parseLessonsJson(rawJson)
+        assertEquals(2, parsed.size)
+        assertEquals("Волейбол", parsed[0].courseName)
+        assertEquals("307", parsed[1].roomNumber)
+    }
+
+    @Test
+    fun preferencesAndViewModel_manageSettings() {
+        val viewModel = MainViewModel(context, appPreferences)
+
+        val initial = viewModel.settings.value
+        assertEquals(54f, initial.fontSize, 0.001f)
+        assertEquals(68f, initial.yPosition, 0.001f)
+        assertEquals(0.95f, initial.textScaleX, 0.001f)
+        assertEquals(2.5f, initial.boldness, 0.001f)
+        assertEquals("307", initial.previewRoom)
+
+        viewModel.setFontSize(60f)
+        viewModel.setYPosition(72f)
+        viewModel.setTextScaleX(1.05f)
+        viewModel.setBoldness(3.0f)
+        viewModel.setPreviewRoom("204")
+
+        val updated = viewModel.settings.value
+        assertEquals(60f, updated.fontSize, 0.001f)
+        assertEquals(72f, updated.yPosition, 0.001f)
+        assertEquals(1.05f, updated.textScaleX, 0.001f)
+        assertEquals(3.0f, updated.boldness, 0.001f)
+        assertEquals("204", updated.previewRoom)
+
+        viewModel.resetScalingDefaults()
+        val reset = viewModel.settings.value
+        assertEquals(54f, reset.fontSize, 0.001f)
+        assertEquals(68f, reset.yPosition, 0.001f)
+        assertEquals(0.95f, reset.textScaleX, 0.001f)
+        assertEquals(2.5f, reset.boldness, 0.001f)
+        assertEquals("307", reset.previewRoom)
+    }
+
+    @Test
+    fun classBarService_channelsAndNotifications() {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        ClassBarService.ensureNotificationChannels(context, manager)
+
+        val highChannel = manager.getNotificationChannel(ClassBarService.CHANNEL_FORCED_HIGH)
+        val silentChannel = manager.getNotificationChannel(ClassBarService.CHANNEL_FORCED_SILENT)
         assertNotNull(highChannel)
         assertNotNull(silentChannel)
         assertEquals(NotificationManager.IMPORTANCE_HIGH, highChannel.importance)
         assertEquals(NotificationManager.IMPORTANCE_LOW, silentChannel.importance)
-        assertNull(highChannel.sound)
-        assertFalse(highChannel.shouldVibrate())
-        assertFalse(highChannel.canShowBadge())
-        assertTrue(highChannel.canBypassDnd())
-        assertTrue(silentChannel.canBypassDnd())
-        assertEquals(Notification.VISIBILITY_SECRET, highChannel.lockscreenVisibility)
-        assertEquals(Notification.VISIBILITY_SECRET, silentChannel.lockscreenVisibility)
 
-        val fixedNow = 1_700_000_000_000L
-        val highSettings = IconSettings(
+        val settings = IconSettings(
             isEnabled = true,
             priorityMode = PriorityMode.FORCED_HIGH,
-            tapAction = TapAction.DO_NOTHING
-        )
-        val highNotification = DateNotificationService.buildStatusNotification(
-            context = context,
-            settings = highSettings,
-            shadeOpen = false,
-            nowMillis = fixedNow
-        )
-        assertEquals("channel_forced_max_v3", highNotification.channelId)
-        assertEquals("0000", highNotification.sortKey)
-        assertEquals(NotificationCompat.PRIORITY_MAX, highNotification.priority)
-        assertEquals(fixedNow + 31_536_000_000L, highNotification.`when`)
-        assertFalse(highNotification.extras.getBoolean(Notification.EXTRA_SHOW_WHEN, true))
-        assertEquals(Notification.VISIBILITY_SECRET, highNotification.visibility)
-        assertEquals("Day & date icon", highNotification.extras.getString(Notification.EXTRA_TITLE))
-        assertNull(highNotification.extras.getCharSequence(Notification.EXTRA_TEXT))
-        assertNull(highNotification.contentIntent)
-
-        val dynamicSettings = IconSettings(
-            isEnabled = true,
-            priorityMode = PriorityMode.DYNAMIC,
             tapAction = TapAction.OPEN_APP
         )
-        val closedShadeNotif = DateNotificationService.buildStatusNotification(
-            context = context,
-            settings = dynamicSettings,
-            shadeOpen = false,
-            nowMillis = fixedNow
-        )
-        assertEquals("channel_forced_max_v3", closedShadeNotif.channelId)
-        assertEquals("0000", closedShadeNotif.sortKey)
-        assertEquals(NotificationCompat.PRIORITY_MAX, closedShadeNotif.priority)
-        assertEquals(fixedNow + 31_536_000_000L, closedShadeNotif.`when`)
-        assertNotNull(closedShadeNotif.contentIntent)
-
-        val openShadeNotif = DateNotificationService.buildStatusNotification(
-            context = context,
-            settings = dynamicSettings,
-            shadeOpen = true,
-            nowMillis = fixedNow
-        )
-        assertEquals(DateNotificationService.CHANNEL_FORCED_SILENT, openShadeNotif.channelId)
-        assertEquals("zzz", openShadeNotif.sortKey)
-        assertEquals(NotificationCompat.PRIORITY_LOW, openShadeNotif.priority)
+        val notification = ClassBarService.buildStatusNotification(context, settings, shadeOpen = false)
+        assertEquals(ClassBarService.CHANNEL_FORCED_HIGH, notification.channelId)
+        assertEquals("0000", notification.sortKey)
+        assertEquals(NotificationCompat.PRIORITY_MAX, notification.priority)
+        assertNull(notification.extras.getCharSequence(Notification.EXTRA_TEXT))
+        assertNotNull(notification.contentIntent)
     }
 
     @Test
-    fun launcherIconAliases_switchComponentEnabledSettingsAndMidnightCalculationIs000001() {
-        appPreferences.setLauncherIconStyle(LauncherIconStyle.ICON_2)
+    fun launcherIconAliases_switchComponentEnabledSettings() {
+        appPreferences.setLauncherIconStyle(LauncherIconStyle.STYLE_2)
         val pm = context.packageManager
 
         assertEquals(
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-            pm.getComponentEnabledSetting(ComponentName(context.packageName, LauncherIconStyle.ICON_1.aliasClassName))
+            pm.getComponentEnabledSetting(ComponentName(context.packageName, "${context.packageName}.${LauncherIconStyle.STYLE_1.aliasName}"))
         )
         assertEquals(
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-            pm.getComponentEnabledSetting(ComponentName(context.packageName, LauncherIconStyle.ICON_2.aliasClassName))
+            pm.getComponentEnabledSetting(ComponentName(context.packageName, "${context.packageName}.${LauncherIconStyle.STYLE_2.aliasName}"))
         )
         assertEquals(
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-            pm.getComponentEnabledSetting(ComponentName(context.packageName, LauncherIconStyle.ICON_3.aliasClassName))
+            pm.getComponentEnabledSetting(ComponentName(context.packageName, "${context.packageName}.${LauncherIconStyle.STYLE_3.aliasName}"))
         )
-
-        val triggerMillis = DateNotificationService.computeNextMidnightTriggerMillis()
-        val cal = Calendar.getInstance().apply { timeInMillis = triggerMillis }
-        assertEquals(0, cal.get(Calendar.HOUR_OF_DAY))
-        assertEquals(0, cal.get(Calendar.MINUTE))
-        assertEquals(1, cal.get(Calendar.SECOND))
     }
 }
