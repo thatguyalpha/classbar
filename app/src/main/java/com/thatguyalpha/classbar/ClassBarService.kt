@@ -103,9 +103,12 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
         serviceScope.launch {
             val result = ShkoloApi.getSchedule(token, pupilId, todayStr)
             result.onSuccess { lessons ->
-                // Cache raw response or rebuild json
-                val json = ShkoloApi.getSchedule(token, pupilId, todayStr)
                 refreshNotification(this@ClassBarService)
+            }.onFailure { err ->
+                if (err is UnauthorizedException) {
+                    appPreferences.clearSession()
+                    stopSelf()
+                }
             }
         }
     }

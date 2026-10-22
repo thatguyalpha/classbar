@@ -24,6 +24,8 @@ data class LoginResult(
     val pupils: List<PupilInfo>
 )
 
+class UnauthorizedException(message: String = "Session expired or unauthorized (HTTP 401)") : Exception(message)
+
 data class Lesson(
     val hourNumber: Int,
     val fromTime: String,
@@ -197,10 +199,17 @@ object ShkoloApi {
         }
 
         val responseCode = conn.responseCode
+        if (responseCode == 401) {
+            throw UnauthorizedException("Session expired or unauthorized (HTTP 401)")
+        }
         val responseText = if (responseCode in 200..299) {
             conn.inputStream.bufferedReader().use(BufferedReader::readText)
         } else {
             conn.errorStream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+        }
+
+        if (responseCode !in 200..299) {
+            throw Exception("Failed to fetch pupils (HTTP $responseCode)")
         }
 
         val pupilsList = mutableListOf<PupilInfo>()
@@ -245,6 +254,9 @@ object ShkoloApi {
                 }
 
                 val responseCode = conn.responseCode
+                if (responseCode == 401) {
+                    throw UnauthorizedException("Session expired or unauthorized (HTTP 401)")
+                }
                 val responseText = if (responseCode in 200..299) {
                     conn.inputStream.bufferedReader().use(BufferedReader::readText)
                 } else {
