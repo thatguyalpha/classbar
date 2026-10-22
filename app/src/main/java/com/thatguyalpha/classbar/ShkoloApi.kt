@@ -239,7 +239,12 @@ object ShkoloApi {
         return pupilsList
     }
 
-    suspend fun getSchedule(token: String, pupilId: Long, dateString: String): Result<List<Lesson>> =
+    suspend fun getSchedule(
+        token: String,
+        pupilId: Long,
+        dateString: String,
+        preferences: AppPreferences? = null
+    ): Result<List<Lesson>> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val url = URL("$BASE_URL/diary/pupils/$pupilId/scheduleHours?date=$dateString")
@@ -265,6 +270,10 @@ object ShkoloApi {
 
                 if (responseCode !in 200..299) {
                     throw Exception("Failed to fetch schedule (HTTP $responseCode)")
+                }
+
+                if (preferences != null && responseText.isNotBlank()) {
+                    preferences.saveScheduleCache(dateString, responseText)
                 }
 
                 parseLessonsJson(responseText)
