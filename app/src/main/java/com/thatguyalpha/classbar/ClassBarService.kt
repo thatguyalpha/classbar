@@ -101,7 +101,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
 
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         serviceScope.launch {
-            val result = ShkoloApi.getSchedule(token, pupilId, todayStr)
+            val result = ShkoloApi.getSchedule(token, pupilId, todayStr, appPreferences)
             result.onSuccess { lessons ->
                 refreshNotification(this@ClassBarService)
             }.onFailure { err ->
@@ -124,6 +124,12 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             stopSelf()
             return
         }
+
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        if (appPreferences.loadScheduleCache(todayStr).isNullOrBlank()) {
+            triggerBackgroundScheduleRefreshIfNeeded()
+        }
+
         val notification = buildStatusNotification(context, settings, isShadeOpen)
         notificationManager.notify(NOTIFICATION_ID, notification)
     }

@@ -68,6 +68,20 @@ class MainViewModel(
     )
     val previewBitmap: StateFlow<Bitmap> = _previewBitmap.asStateFlow()
 
+    private val _previewCountdownMinutes = MutableStateFlow("35")
+    val previewCountdownMinutes: StateFlow<String> = _previewCountdownMinutes.asStateFlow()
+
+    private val _previewCountdownBitmap = MutableStateFlow(
+        ClassBarIconGenerator.generateBitmapForRoom("35", _settings.value)
+    )
+    val previewCountdownBitmap: StateFlow<Bitmap> = _previewCountdownBitmap.asStateFlow()
+
+    private fun updatePreviewBitmaps() {
+        val s = _settings.value
+        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(s)
+        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForRoom(_previewCountdownMinutes.value, s)
+    }
+
     init {
         if (preferences.isLoggedIn()) {
             loadScheduleForDate(_selectedDateString.value)
@@ -179,7 +193,7 @@ class MainViewModel(
         _lessonsError.value = null
 
         viewModelScope.launch {
-            val result = ShkoloApi.getSchedule(token, pupilId, dateStr)
+            val result = ShkoloApi.getSchedule(token, pupilId, dateStr, preferences)
             _isLoadingLessons.value = false
             result.onSuccess { lessonList ->
                 _lessons.value = lessonList
@@ -216,7 +230,7 @@ class MainViewModel(
     fun setServiceEnabled(enabled: Boolean) {
         preferences.setEnabled(enabled)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
         if (enabled) {
             ClassBarService.startOrRefresh(appContext)
         } else {
@@ -227,31 +241,37 @@ class MainViewModel(
     fun setFontSize(size: Float) {
         preferences.setFontSize(size)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
     }
 
     fun setYPosition(y: Float) {
         preferences.setYPosition(y)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
     }
 
     fun setTextScaleX(scale: Float) {
         preferences.setTextScaleX(scale)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
     }
 
     fun setBoldness(boldness: Float) {
         preferences.setBoldness(boldness)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
     }
 
     fun setPreviewRoom(room: String) {
         preferences.setPreviewRoom(room)
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
+    }
+
+    fun setPreviewCountdownMinutes(minutes: String) {
+        val filtered = minutes.trim().filter { it.isDigit() }.take(3)
+        _previewCountdownMinutes.value = if (filtered.isEmpty()) "0" else filtered
+        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForRoom(_previewCountdownMinutes.value, _settings.value)
     }
 
     fun resetPreviewRoom() {
@@ -272,7 +292,7 @@ class MainViewModel(
     fun resetScalingDefaults() {
         preferences.resetDefaults()
         _settings.value = preferences.loadSettings()
-        _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(_settings.value)
+        updatePreviewBitmaps()
     }
 
     fun setPriorityMode(mode: PriorityMode) {
