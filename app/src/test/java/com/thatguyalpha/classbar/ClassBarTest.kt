@@ -230,4 +230,14 @@ class ClassBarTest {
             pm.getComponentEnabledSetting(ComponentName(context.packageName, "${context.packageName}.${LauncherIconStyle.STYLE_3.aliasName}"))
         )
     }
+
+    @Test
+    fun unauthorizedException_hasCorrectMessageAndInheritance() {
+        val ex = UnauthorizedException()
+        assertEquals("Session expired or unauthorized (HTTP 401)", ex.message)
+        assertTrue(ex is Exception)
+
+        val customEx = UnauthorizedException("Custom unauthorized")
+        assertEquals("Custom unauthorized", customEx.message)
+    }
 }

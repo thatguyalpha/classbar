@@ -128,6 +128,7 @@ class MainViewModel(
         _studentName.value = ""
         _className.value = ""
         _lessons.value = emptyList()
+        _lessonsError.value = null
         ClassBarService.stop(appContext)
     }
 
@@ -200,7 +201,10 @@ class MainViewModel(
                     }
                 }
             }.onFailure { err ->
-                if (_lessons.value.isEmpty()) {
+                if (err is UnauthorizedException) {
+                    logout()
+                    _loginError.value = "Your session has expired. Please sign in again."
+                } else if (_lessons.value.isEmpty()) {
                     _lessonsError.value = err.message ?: "Failed to load schedule"
                 }
             }
