@@ -1106,20 +1106,34 @@ fun IconTab(viewModel: MainViewModel) {
                             OutlinedTextField(
                                 value = previewCountdownMinutes,
                                 onValueChange = { viewModel.setPreviewCountdownMinutes(it) },
-                                label = { Text("Test Minutes Left") },
+                                label = { Text("Test Minutes Remaining") },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("40") }) {
-                                    Text("40m")
-                                }
-                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("15") }) {
-                                    Text("15m")
-                                }
-                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("5") }) {
-                                    Text("5m")
-                                }
+                            OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("35") }) {
+                                Text("Reset")
+                            }
+                        }
+
+                        // Quick Presets
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Quick presets:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("40") }) {
+                                Text("40m")
+                            }
+                            OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("15") }) {
+                                Text("15m")
+                            }
+                            OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("5") }) {
+                                Text("5m")
                             }
                         }
                     }
