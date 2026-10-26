@@ -749,7 +749,7 @@ fun LessonCardItem(lesson: Lesson) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = if (lesson.roomName.isNotBlank()) "Room: ${lesson.roomName}" else "Room: —",
+                            text = if (lesson.roomName.isNotBlank()) lesson.roomName else "—",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
