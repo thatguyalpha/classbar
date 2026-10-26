@@ -72,14 +72,14 @@ class MainViewModel(
     val previewCountdownMinutes: StateFlow<String> = _previewCountdownMinutes.asStateFlow()
 
     private val _previewCountdownBitmap = MutableStateFlow(
-        ClassBarIconGenerator.generateBitmapForRoom("35", _settings.value)
+        ClassBarIconGenerator.generateBitmapForCountdown("35", _settings.value)
     )
     val previewCountdownBitmap: StateFlow<Bitmap> = _previewCountdownBitmap.asStateFlow()
 
     private fun updatePreviewBitmaps() {
         val s = _settings.value
         _previewBitmap.value = ClassBarIconGenerator.generatePreviewBitmap(s)
-        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForRoom(_previewCountdownMinutes.value, s)
+        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForCountdown(_previewCountdownMinutes.value, s)
     }
 
     init {
@@ -262,7 +262,35 @@ class MainViewModel(
         updatePreviewBitmaps()
     }
 
+    fun setCountdownFontSize(size: Float) {
+        preferences.setCountdownFontSize(size)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+    }
+
+    fun setCountdownYPosition(y: Float) {
+        preferences.setCountdownYPosition(y)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+    }
+
+    fun setCountdownTextScaleX(scale: Float) {
+        preferences.setCountdownTextScaleX(scale)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+    }
+
+    fun setCountdownBoldness(boldness: Float) {
+        preferences.setCountdownBoldness(boldness)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+    }
+
     fun setPreviewRoom(room: String) {
+        prefsEditPreviewRoom(room)
+    }
+
+    private fun prefsEditPreviewRoom(room: String) {
         preferences.setPreviewRoom(room)
         _settings.value = preferences.loadSettings()
         updatePreviewBitmaps()
@@ -271,7 +299,7 @@ class MainViewModel(
     fun setPreviewCountdownMinutes(minutes: String) {
         val filtered = minutes.trim().filter { it.isDigit() }.take(3)
         _previewCountdownMinutes.value = if (filtered.isEmpty()) "0" else filtered
-        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForRoom(_previewCountdownMinutes.value, _settings.value)
+        _previewCountdownBitmap.value = ClassBarIconGenerator.generateBitmapForCountdown(_previewCountdownMinutes.value, _settings.value)
     }
 
     fun resetPreviewRoom() {
@@ -287,6 +315,18 @@ class MainViewModel(
         if (_settings.value.isEnabled) {
             ClassBarService.startOrRefresh(appContext)
         }
+    }
+
+    fun resetRoomDefaults() {
+        preferences.resetRoomDefaults()
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+    }
+
+    fun resetCountdownDefaults() {
+        preferences.resetCountdownDefaults()
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
     }
 
     fun resetScalingDefaults() {

@@ -211,10 +211,16 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             }
         }
 
+        data class StatusNotificationInfo(
+            val iconText: String,
+            val title: String,
+            val isCountdown: Boolean
+        )
+
         /**
-         * Resolves the icon text (room number or countdown minutes) and minimal notification title.
+         * Resolves the icon text (room number or countdown minutes), title, and countdown flag.
          */
-        fun resolveUpcomingLessonIconAndTitle(context: Context, settings: IconSettings): Pair<String, String> {
+        fun resolveUpcomingLessonIconAndTitle(context: Context, settings: IconSettings): StatusNotificationInfo {
             val prefs = AppPreferences(context)
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             val cachedJson = prefs.loadScheduleCache(todayStr)
@@ -232,22 +238,23 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
                         "${lesson.roomNumber} • ${lesson.courseName}"
                     }
 
-                    val iconText = if (isActiveNow && settings.countdownEnabled) {
+                    val isCountdown = isActiveNow && settings.countdownEnabled
+                    val iconText = if (isCountdown) {
                         val remainingMinutes = ShkoloApi.computeMinutesRemaining(lesson.toTime, nowTime)
                         remainingMinutes.toString()
                     } else {
                         lesson.roomNumber
                     }
 
-                    return Pair(iconText, title)
+                    return StatusNotificationInfo(iconText, title, isCountdown)
                 } else if (lessons.isNotEmpty()) {
-                    return Pair("—", "ClassBar")
+                    return StatusNotificationInfo("—", "ClassBar", false)
                 }
             }
 
             // Fallback: if preview room is configured or no schedule
             val preview = settings.previewRoom
-            return Pair(preview, "ClassBar")
+            return StatusNotificationInfo(preview, "ClassBar", false)
         }
 
         fun buildStatusNotification(
@@ -259,13 +266,13 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             val targetChannel = if (effectiveHigh) CHANNEL_FORCED_HIGH else CHANNEL_FORCED_SILENT
             val priorityInt = if (effectiveHigh) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_MIN
 
-            val (iconText, title) = resolveUpcomingLessonIconAndTitle(context, settings)
-            val iconCompat = ClassBarIconGenerator.generateIconCompat(iconText, settings)
+            val notifInfo = resolveUpcomingLessonIconAndTitle(context, settings)
+            val iconCompat = ClassBarIconGenerator.generateIconCompat(notifInfo.iconText, settings, notifInfo.isCountdown)
             val contentIntent = createContentPendingIntent(context, settings.tapAction)
 
             return NotificationCompat.Builder(context, targetChannel)
                 .setSmallIcon(iconCompat)
-                .setContentTitle(title)
+                .setContentTitle(notifInfo.title)
                 .setContentText(null)
                 .setSubText(null)
                 .setOngoing(true)

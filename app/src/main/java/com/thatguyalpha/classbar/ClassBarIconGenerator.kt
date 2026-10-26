@@ -94,6 +94,19 @@ object ClassBarIconGenerator {
     }
 
     /**
+     * Renders bitmap directly from [IconSettings] for the remaining countdown minutes.
+     */
+    fun generateBitmapForCountdown(countdownText: String, settings: IconSettings): Bitmap {
+        return renderRoomBitmap(
+            roomText = countdownText,
+            textSize = settings.countdownFontSize,
+            yPosition = settings.countdownYPosition,
+            textScaleX = settings.countdownTextScaleX,
+            boldness = settings.countdownBoldness
+        )
+    }
+
+    /**
      * Generates a preview bitmap using the configured preview room text.
      */
     fun generatePreviewBitmap(settings: IconSettings): Bitmap {
@@ -101,10 +114,21 @@ object ClassBarIconGenerator {
     }
 
     /**
-     * Wraps the generated room bitmap into an [IconCompat] suitable for NotificationCompat.
+     * Generates a preview bitmap for the countdown icon using the configured countdown settings.
      */
-    fun generateIconCompat(roomText: String, settings: IconSettings): IconCompat {
-        val bitmap = generateBitmapForRoom(roomText, settings)
+    fun generatePreviewCountdownBitmap(countdownText: String, settings: IconSettings): Bitmap {
+        return generateBitmapForCountdown(countdownText, settings)
+    }
+
+    /**
+     * Wraps the generated room or countdown bitmap into an [IconCompat] suitable for NotificationCompat.
+     */
+    fun generateIconCompat(text: String, settings: IconSettings, isCountdown: Boolean = false): IconCompat {
+        val bitmap = if (isCountdown) {
+            generateBitmapForCountdown(text, settings)
+        } else {
+            generateBitmapForRoom(text, settings)
+        }
         return IconCompat.createWithBitmap(bitmap)
     }
 }

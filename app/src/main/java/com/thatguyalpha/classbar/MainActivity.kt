@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -64,10 +65,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -785,6 +790,12 @@ fun LessonCardItem(lesson: Lesson) {
 // 4. TAB 2: ICON (Position, Width, Boldness Controls & Live Preview)
 // =========================================================================
 
+enum class SliderConfigTarget(val label: String, val subtitle: String) {
+    ROOM_NUMBER("Room Number Icon", "Configure upcoming classroom number (#)"),
+    MINUTES_LEFT("Minutes Left Icon", "Configure lesson countdown minutes")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IconTab(viewModel: MainViewModel) {
     val settings by viewModel.settings.collectAsState()
@@ -794,6 +805,9 @@ fun IconTab(viewModel: MainViewModel) {
 
     var isRoomPreviewExpanded by rememberSaveable { mutableStateOf(true) }
     var isCountdownPreviewExpanded by rememberSaveable { mutableStateOf(true) }
+    var isSlidersExpanded by rememberSaveable { mutableStateOf(true) }
+    var selectedTarget by rememberSaveable { mutableStateOf(SliderConfigTarget.ROOM_NUMBER) }
+    var targetDropdownExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -970,7 +984,7 @@ fun IconTab(viewModel: MainViewModel) {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                OutlinedButton(onClick = { viewModel.resetScalingDefaults() }) {
+                                OutlinedButton(onClick = { viewModel.resetRoomDefaults() }) {
                                     Text("Reset Sliders")
                                 }
                                 OutlinedButton(onClick = { viewModel.resetPreviewRoom() }) {
@@ -1110,8 +1124,15 @@ fun IconTab(viewModel: MainViewModel) {
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
-                            OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("35") }) {
-                                Text("Reset")
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedButton(onClick = { viewModel.resetCountdownDefaults() }) {
+                                    Text("Reset Sliders")
+                                }
+                                OutlinedButton(onClick = { viewModel.setPreviewCountdownMinutes("35") }) {
+                                    Text("Reset Minutes")
+                                }
                             }
                         }
 
@@ -1178,7 +1199,7 @@ fun IconTab(viewModel: MainViewModel) {
             }
         }
 
-        // 3. Position and Width Controls (Sliders)
+        // 3. Position and Width Controls (Sliders with Dropdown)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -1186,52 +1207,290 @@ fun IconTab(viewModel: MainViewModel) {
             )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Position & Size Sliders",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .clickable { isSlidersExpanded = !isSlidersExpanded }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Position & Size Sliders",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Separate slider configs • ${selectedTarget.label}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { isSlidersExpanded = !isSlidersExpanded }) {
+                        Icon(
+                            imageVector = if (isSlidersExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isSlidersExpanded) "Collapse Sliders" else "Expand Sliders"
+                        )
+                    }
+                }
 
-                // Slider 1: Font Size (24f..72f)
-                ScalingSliderItem(
-                    label = "Room Text Size",
-                    valueText = String.format(Locale.US, "%.0f px", settings.fontSize),
-                    value = settings.fontSize,
-                    valueRange = AppPreferences.MIN_FONT_SIZE..AppPreferences.MAX_FONT_SIZE,
-                    onValueChange = { viewModel.setFontSize(it) }
-                )
+                AnimatedVisibility(visible = isSlidersExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Dropdown to select which icon's sliders to configure
+                        ExposedDropdownMenuBox(
+                            expanded = targetDropdownExpanded,
+                            onExpandedChange = { targetDropdownExpanded = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = selectedTarget.label,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Configuring Icon Sliders For") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (selectedTarget == SliderConfigTarget.ROOM_NUMBER) {
+                                            Icons.Default.MeetingRoom
+                                        } else {
+                                            Icons.Default.Timer
+                                        },
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = targetDropdownExpanded)
+                                },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth()
+                            )
 
-                // Slider 2: Vertical Position Y (20f..90f)
-                ScalingSliderItem(
-                    label = "Vertical Position (Y Baseline)",
-                    valueText = String.format(Locale.US, "%.0f px", settings.yPosition),
-                    value = settings.yPosition,
-                    valueRange = AppPreferences.MIN_Y_POSITION..AppPreferences.MAX_Y_POSITION,
-                    onValueChange = { viewModel.setYPosition(it) }
-                )
+                            ExposedDropdownMenu(
+                                expanded = targetDropdownExpanded,
+                                onDismissRequest = { targetDropdownExpanded = false }
+                            ) {
+                                SliderConfigTarget.entries.forEach { target ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(
+                                                    text = target.label,
+                                                    fontWeight = if (selectedTarget == target) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                Text(
+                                                    text = target.subtitle,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = if (target == SliderConfigTarget.ROOM_NUMBER) {
+                                                    Icons.Default.MeetingRoom
+                                                } else {
+                                                    Icons.Default.Timer
+                                                },
+                                                contentDescription = null,
+                                                tint = if (selectedTarget == target) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                }
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedTarget = target
+                                            targetDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
 
-                // Slider 3: Horizontal Width Scale (0.70f..1.15f)
-                ScalingSliderItem(
-                    label = "Horizontal Width Scale (textScaleX)",
-                    valueText = String.format(Locale.US, "%.2fx", settings.textScaleX),
-                    value = settings.textScaleX,
-                    valueRange = AppPreferences.MIN_TEXT_SCALE_X..AppPreferences.MAX_TEXT_SCALE_X,
-                    onValueChange = { viewModel.setTextScaleX(it) }
-                )
+                        // Compact live preview of the currently selected icon
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val currentBitmap = if (selectedTarget == SliderConfigTarget.ROOM_NUMBER) {
+                                    previewBitmap
+                                } else {
+                                    previewCountdownBitmap
+                                }
+                                val targetSummary = if (selectedTarget == SliderConfigTarget.ROOM_NUMBER) {
+                                    "Room #${settings.previewRoom}"
+                                } else {
+                                    "${previewCountdownMinutes}m Left"
+                                }
 
-                // Slider 4: Boldness / Weight (0.0f..3.5f)
-                ScalingSliderItem(
-                    label = "Boldness / Weight",
-                    valueText = String.format(Locale.US, "%.1f", settings.boldness),
-                    value = settings.boldness,
-                    valueRange = AppPreferences.MIN_BOLDNESS..AppPreferences.MAX_BOLDNESS,
-                    onValueChange = { viewModel.setBoldness(it) }
-                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Canvas ($targetSummary)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .border(
+                                                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                RoundedCornerShape(6.dp)
+                                            )
+                                            .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(6.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            bitmap = currentBitmap.asImageBitmap(),
+                                            contentDescription = "Live Canvas Preview",
+                                            modifier = Modifier.size(60.dp)
+                                        )
+                                    }
+                                }
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Status Bar Simulation",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .height(60.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFF0F0F14))
+                                            .border(BorderStroke(1.dp, Color(0xFF2E2E38)), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "9:30",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Image(
+                                                bitmap = currentBitmap.asImageBitmap(),
+                                                contentDescription = "Status Bar Preview",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Render Sliders according to selected target
+                        if (selectedTarget == SliderConfigTarget.ROOM_NUMBER) {
+                            ScalingSliderItem(
+                                label = "Room Text Size",
+                                valueText = String.format(Locale.US, "%.0f px", settings.fontSize),
+                                value = settings.fontSize,
+                                valueRange = AppPreferences.MIN_FONT_SIZE..AppPreferences.MAX_FONT_SIZE,
+                                onValueChange = { viewModel.setFontSize(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Room Vertical Position (Y Baseline)",
+                                valueText = String.format(Locale.US, "%.0f px", settings.yPosition),
+                                value = settings.yPosition,
+                                valueRange = AppPreferences.MIN_Y_POSITION..AppPreferences.MAX_Y_POSITION,
+                                onValueChange = { viewModel.setYPosition(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Room Width Scale (textScaleX)",
+                                valueText = String.format(Locale.US, "%.2fx", settings.textScaleX),
+                                value = settings.textScaleX,
+                                valueRange = AppPreferences.MIN_TEXT_SCALE_X..AppPreferences.MAX_TEXT_SCALE_X,
+                                onValueChange = { viewModel.setTextScaleX(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Room Boldness / Weight",
+                                valueText = String.format(Locale.US, "%.1f", settings.boldness),
+                                value = settings.boldness,
+                                valueRange = AppPreferences.MIN_BOLDNESS..AppPreferences.MAX_BOLDNESS,
+                                onValueChange = { viewModel.setBoldness(it) }
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                OutlinedButton(onClick = { viewModel.resetRoomDefaults() }) {
+                                    Text("Reset Room Sliders")
+                                }
+                            }
+                        } else {
+                            ScalingSliderItem(
+                                label = "Countdown Text Size",
+                                valueText = String.format(Locale.US, "%.0f px", settings.countdownFontSize),
+                                value = settings.countdownFontSize,
+                                valueRange = AppPreferences.MIN_FONT_SIZE..AppPreferences.MAX_FONT_SIZE,
+                                onValueChange = { viewModel.setCountdownFontSize(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Countdown Vertical Position (Y Baseline)",
+                                valueText = String.format(Locale.US, "%.0f px", settings.countdownYPosition),
+                                value = settings.countdownYPosition,
+                                valueRange = AppPreferences.MIN_Y_POSITION..AppPreferences.MAX_Y_POSITION,
+                                onValueChange = { viewModel.setCountdownYPosition(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Countdown Width Scale (textScaleX)",
+                                valueText = String.format(Locale.US, "%.2fx", settings.countdownTextScaleX),
+                                value = settings.countdownTextScaleX,
+                                valueRange = AppPreferences.MIN_TEXT_SCALE_X..AppPreferences.MAX_TEXT_SCALE_X,
+                                onValueChange = { viewModel.setCountdownTextScaleX(it) }
+                            )
+
+                            ScalingSliderItem(
+                                label = "Countdown Boldness / Weight",
+                                valueText = String.format(Locale.US, "%.1f", settings.countdownBoldness),
+                                value = settings.countdownBoldness,
+                                valueRange = AppPreferences.MIN_BOLDNESS..AppPreferences.MAX_BOLDNESS,
+                                onValueChange = { viewModel.setCountdownBoldness(it) }
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                OutlinedButton(onClick = { viewModel.resetCountdownDefaults() }) {
+                                    Text("Reset Countdown Sliders")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1274,12 +1533,15 @@ private fun ScalingSliderItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f, fill = false)
             )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = valueText,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1
             )
         }
         Slider(
