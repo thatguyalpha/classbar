@@ -246,7 +246,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
 
         /**
          * Resolves the icon text (room number or countdown minutes), title, and countdown flag.
-         * Returns null if all lessons for today have finished.
+         * Returns null if all lessons for today have finished or if it is before the appearance lead time.
          */
         fun resolveUpcomingLessonIconAndTitle(context: Context, settings: IconSettings): StatusNotificationInfo? {
             val prefs = AppPreferences(context)
@@ -255,7 +255,21 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
 
             if (!cachedJson.isNullOrBlank()) {
                 val lessons = ShkoloApi.parseLessonsJson(cachedJson)
+                if (lessons.isEmpty()) {
+                    return null
+                }
                 val nowTime = SimpleDateFormat("HH:mm", Locale.US).format(Date())
+
+                // Check if it is too early in the day (before lead time)
+                if (ShkoloApi.isBeforeNotificationLeadTime(lessons, nowTime, settings.notificationLeadTimeMinutes)) {
+                    return null
+                }
+
+                // Check if all lessons for the day have finished
+                if (ShkoloApi.isDayFinished(lessons, nowTime)) {
+                    return null
+                }
+
                 val (lesson, isActiveNow) = ShkoloApi.findCurrentOrUpcomingLesson(lessons, nowTime)
 
                 if (lesson != null) {
@@ -275,7 +289,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
                     }
 
                     return StatusNotificationInfo(iconText, title, isCountdown)
-                } else if (lessons.isNotEmpty()) {
+                } else {
                     return null
                 }
             }

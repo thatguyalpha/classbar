@@ -20,6 +20,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,6 +115,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import java.util.Locale
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
 
@@ -1196,6 +1198,99 @@ fun IconTab(viewModel: MainViewModel) {
                     checked = settings.countdownEnabled,
                     onCheckedChange = { viewModel.setCountdownEnabled(it) }
                 )
+            }
+        }
+
+        // Notification Appearance Lead Time Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Notification Appearance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Controls how early the notification appears before your first lesson of the day.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                val leadMinutes = settings.notificationLeadTimeMinutes
+                val formattedTimeText = when {
+                    leadMinutes == 0 -> "At class start (0 min)"
+                    leadMinutes < 60 -> "$leadMinutes min before"
+                    leadMinutes % 60 == 0 -> "${leadMinutes / 60}h before"
+                    else -> "${leadMinutes / 60}h ${leadMinutes % 60}m before"
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Lead Time",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = formattedTimeText,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Slider(
+                    value = leadMinutes.toFloat(),
+                    onValueChange = { viewModel.setNotificationLeadTimeMinutes(it.roundToInt()) },
+                    valueRange = AppPreferences.MIN_NOTIFICATION_LEAD_TIME_MINUTES.toFloat()..AppPreferences.MAX_NOTIFICATION_LEAD_TIME_MINUTES.toFloat(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Quick presets
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Presets:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(0) }) {
+                        Text("0m")
+                    }
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(15) }) {
+                        Text("15m")
+                    }
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(30) }) {
+                        Text("30m (Default)")
+                    }
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(60) }) {
+                        Text("1h")
+                    }
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(120) }) {
+                        Text("2h")
+                    }
+                    OutlinedButton(onClick = { viewModel.setNotificationLeadTimeMinutes(300) }) {
+                        Text("5h (Max)")
+                    }
+                }
             }
         }
 

@@ -100,15 +100,20 @@ object ShkoloApi {
     }
 
     /**
+     * Parses a "HH:mm" time string into total minutes from midnight.
+     */
+    fun parseTimeToMinutes(timeStr: String): Int {
+        val parts = timeStr.split(":").mapNotNull { it.toIntOrNull() }
+        if (parts.size < 2) return 0
+        return parts[0] * 60 + parts[1]
+    }
+
+    /**
      * Computes minutes remaining until toTime given nowTime (both formatted as "HH:mm").
      */
     fun computeMinutesRemaining(toTimeStr: String, nowTimeStr: String): Int {
-        val toParts = toTimeStr.split(":").mapNotNull { it.toIntOrNull() }
-        val nowParts = nowTimeStr.split(":").mapNotNull { it.toIntOrNull() }
-        if (toParts.size < 2 || nowParts.size < 2) return 0
-
-        val toMinutes = toParts[0] * 60 + toParts[1]
-        val nowMinutes = nowParts[0] * 60 + nowParts[1]
+        val toMinutes = parseTimeToMinutes(toTimeStr)
+        val nowMinutes = parseTimeToMinutes(nowTimeStr)
         val diff = toMinutes - nowMinutes
         return diff.coerceAtLeast(1)
     }
@@ -120,6 +125,26 @@ object ShkoloApi {
     fun findUpcomingLesson(lessons: List<Lesson>, nowTimeStr: String): Lesson? {
         val validLessons = lessons.sortedBy { it.fromTime }
         return validLessons.firstOrNull { it.toTime > nowTimeStr }
+    }
+
+    /**
+     * Checks if the current time is before the notification lead time
+     * for the first lesson of the day.
+     * E.g. If first lesson starts at 08:00 and leadTimeMinutes is 30,
+     * the notification should appear starting at 07:30.
+     * If now is 07:15, this returns true (too early).
+     */
+    fun isBeforeNotificationLeadTime(
+        lessons: List<Lesson>,
+        nowTimeStr: String,
+        leadTimeMinutes: Int
+    ): Boolean {
+        if (lessons.isEmpty()) return false
+        val firstLesson = lessons.minByOrNull { it.fromTime } ?: return false
+        val firstStartMinutes = parseTimeToMinutes(firstLesson.fromTime)
+        val appearMinutes = (firstStartMinutes - leadTimeMinutes).coerceAtLeast(0)
+        val nowMinutes = parseTimeToMinutes(nowTimeStr)
+        return nowMinutes < appearMinutes
     }
 
     /**
