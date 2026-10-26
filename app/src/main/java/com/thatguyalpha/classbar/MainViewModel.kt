@@ -317,6 +317,14 @@ class MainViewModel(
         }
     }
 
+    fun setNotificationLeadTimeMinutes(minutes: Int) {
+        preferences.setNotificationLeadTimeMinutes(minutes)
+        _settings.value = preferences.loadSettings()
+        if (_settings.value.isEnabled) {
+            ClassBarService.startOrRefresh(appContext)
+        }
+    }
+
     fun resetRoomDefaults() {
         preferences.resetRoomDefaults()
         _settings.value = preferences.loadSettings()
