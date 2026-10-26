@@ -64,6 +64,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
         val settings = appPreferences.loadSettings()
         if (!settings.isEnabled || !appPreferences.isLoggedIn()) {
             stopForeground(STOP_FOREGROUND_REMOVE)
+            notificationManager.cancel(NOTIFICATION_ID)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -71,6 +72,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
         when (intent?.action) {
             ACTION_STOP -> {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+                notificationManager.cancel(NOTIFICATION_ID)
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -86,7 +88,17 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
                 } else {
                     0
                 }
-                ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, foregroundType)
+                if (notification != null) {
+                    ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, foregroundType)
+                } else {
+                    val fallback = NotificationCompat.Builder(this, CHANNEL_FORCED_SILENT)
+                        .setSmallIcon(R.mipmap.ic_launcher_1)
+                        .setContentTitle("ClassBar")
+                        .build()
+                    ServiceCompat.startForeground(this, NOTIFICATION_ID, fallback, foregroundType)
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    notificationManager.cancel(NOTIFICATION_ID)
+                }
                 triggerBackgroundScheduleRefreshIfNeeded()
             }
         }
@@ -121,6 +133,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
         val settings = appPreferences.loadSettings()
         if (!settings.isEnabled || !appPreferences.isLoggedIn()) {
             stopForeground(STOP_FOREGROUND_REMOVE)
+            notificationManager.cancel(NOTIFICATION_ID)
             stopSelf()
             return
         }
@@ -131,6 +144,18 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
         }
 
         val notification = buildStatusNotification(context, settings, isShadeOpen)
+        if (notification == null) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            notificationManager.cancel(NOTIFICATION_ID)
+            return
+        }
+
+        val foregroundType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        } else {
+            0
+        }
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, foregroundType)
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
@@ -173,6 +198,8 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
                 action = ACTION_STOP
             }
             context.startService(intent)
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager?.cancel(NOTIFICATION_ID)
         }
 
         fun ensureNotificationChannels(context: Context, manager: NotificationManager) {
@@ -219,8 +246,9 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
 
         /**
          * Resolves the icon text (room number or countdown minutes), title, and countdown flag.
+         * Returns null if all lessons for today have finished.
          */
-        fun resolveUpcomingLessonIconAndTitle(context: Context, settings: IconSettings): StatusNotificationInfo {
+        fun resolveUpcomingLessonIconAndTitle(context: Context, settings: IconSettings): StatusNotificationInfo? {
             val prefs = AppPreferences(context)
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             val cachedJson = prefs.loadScheduleCache(todayStr)
@@ -248,7 +276,7 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
 
                     return StatusNotificationInfo(iconText, title, isCountdown)
                 } else if (lessons.isNotEmpty()) {
-                    return StatusNotificationInfo("—", "ClassBar", false)
+                    return null
                 }
             }
 
@@ -261,12 +289,13 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             context: Context,
             settings: IconSettings,
             shadeOpen: Boolean
-        ): Notification {
+        ): Notification? {
+            val notifInfo = resolveUpcomingLessonIconAndTitle(context, settings) ?: return null
+
             val effectiveHigh = resolveEffectiveHighPriority(settings.priorityMode, shadeOpen)
             val targetChannel = if (effectiveHigh) CHANNEL_FORCED_HIGH else CHANNEL_FORCED_SILENT
             val priorityInt = if (effectiveHigh) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_MIN
 
-            val notifInfo = resolveUpcomingLessonIconAndTitle(context, settings)
             val iconCompat = ClassBarIconGenerator.generateIconCompat(notifInfo.iconText, settings, notifInfo.isCountdown)
             val contentIntent = createContentPendingIntent(context, settings.tapAction)
 
@@ -309,7 +338,11 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             val manager = context.getSystemService(NotificationManager::class.java) ?: return
             ensureNotificationChannels(context, manager)
             val notification = buildStatusNotification(context, settings, shadeOpen)
-            manager.notify(NOTIFICATION_ID, notification)
+            if (notification != null) {
+                manager.notify(NOTIFICATION_ID, notification)
+            } else {
+                manager.cancel(NOTIFICATION_ID)
+            }
         }
 
         fun onExternalNotificationPosted(context: Context) {
@@ -321,7 +354,11 @@ class ClassBarService : Service(), SharedPreferences.OnSharedPreferenceChangeLis
             val manager = context.getSystemService(NotificationManager::class.java) ?: return
             ensureNotificationChannels(context, manager)
             val notification = buildStatusNotification(context, settings, isShadeOpen)
-            manager.notify(NOTIFICATION_ID, notification)
+            if (notification != null) {
+                manager.notify(NOTIFICATION_ID, notification)
+            } else {
+                manager.cancel(NOTIFICATION_ID)
+            }
         }
     }
 }

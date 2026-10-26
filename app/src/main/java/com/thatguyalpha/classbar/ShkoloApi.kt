@@ -95,7 +95,7 @@ object ShkoloApi {
             return Pair(active, true)
         }
         // Next upcoming class
-        val upcoming = sorted.firstOrNull { it.toTime >= nowTimeStr }
+        val upcoming = sorted.firstOrNull { it.toTime > nowTimeStr }
         return Pair(upcoming, false)
     }
 
@@ -115,11 +115,19 @@ object ShkoloApi {
 
     /**
      * Finds the active or upcoming lesson given the current time formatted as "HH:mm".
-     * A lesson is active or upcoming if its end time (toTime) is greater than or equal to now.
+     * A lesson is active or upcoming if its end time (toTime) is greater than now.
      */
     fun findUpcomingLesson(lessons: List<Lesson>, nowTimeStr: String): Lesson? {
         val validLessons = lessons.sortedBy { it.fromTime }
-        return validLessons.firstOrNull { it.toTime >= nowTimeStr }
+        return validLessons.firstOrNull { it.toTime > nowTimeStr }
+    }
+
+    /**
+     * Checks if all scheduled lessons for the day have ended.
+     */
+    fun isDayFinished(lessons: List<Lesson>, nowTimeStr: String): Boolean {
+        if (lessons.isEmpty()) return false
+        return lessons.all { nowTimeStr >= it.toTime }
     }
 
     suspend fun login(email: String, pass: String): Result<LoginResult> = withContext(Dispatchers.IO) {
