@@ -17,17 +17,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ClassBar">
 
-        <!-- Default launcher alias -->
+        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.ClassBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.ClassBar" />
 
         <!-- Dynamic launcher icon alias 1 -->
         <activity-alias
