@@ -121,4 +121,46 @@ class ClassBarLessonTest {
         assertEquals("102", ShkoloApi.extractRoomNumber("102"))
         assertEquals("СЗ", ShkoloApi.extractRoomNumber("Спортна зала"))
     }
+
+    @Test
+    fun testParseTimeToMinutes() {
+        assertEquals(0, ShkoloApi.parseTimeToMinutes("00:00"))
+        assertEquals(30, ShkoloApi.parseTimeToMinutes("00:30"))
+        assertEquals(480, ShkoloApi.parseTimeToMinutes("08:00"))
+        assertEquals(810, ShkoloApi.parseTimeToMinutes("13:30"))
+        assertEquals(1100, ShkoloApi.parseTimeToMinutes("18:20"))
+        assertEquals(0, ShkoloApi.parseTimeToMinutes("invalid"))
+    }
+
+    @Test
+    fun testIsBeforeNotificationLeadTime_default30Minutes() {
+        // First lesson starts at 08:00. With 30 min lead time, appears at 07:30.
+        assertTrue(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "01:00", 30))
+        assertTrue(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "07:29", 30))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "07:30", 30))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "07:45", 30))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "08:00", 30))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "09:00", 30))
+    }
+
+    @Test
+    fun testIsBeforeNotificationLeadTime_zeroMinutes() {
+        // First lesson starts at 08:00. With 0 min lead time, appears exactly at 08:00.
+        assertTrue(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "07:59", 0))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "08:00", 0))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "08:01", 0))
+    }
+
+    @Test
+    fun testIsBeforeNotificationLeadTime_max300Minutes() {
+        // First lesson starts at 08:00 (480 min). With 300 min (5 hours), appears at 03:00 (180 min).
+        assertTrue(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "02:59", 300))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "03:00", 300))
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(sampleLessons, "07:00", 300))
+    }
+
+    @Test
+    fun testIsBeforeNotificationLeadTime_emptyLessons() {
+        assertFalse(ShkoloApi.isBeforeNotificationLeadTime(emptyList(), "07:00", 30))
+    }
 }

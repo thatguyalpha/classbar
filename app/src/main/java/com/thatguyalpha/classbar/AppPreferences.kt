@@ -57,7 +57,8 @@ data class IconSettings(
     val tapAction: TapAction = TapAction.OPEN_APP,
     val launcherIconStyle: LauncherIconStyle = LauncherIconStyle.STYLE_1,
     val previewRoom: String = AppPreferences.DEFAULT_PREVIEW_ROOM,
-    val countdownEnabled: Boolean = false
+    val countdownEnabled: Boolean = false,
+    val notificationLeadTimeMinutes: Int = AppPreferences.DEFAULT_NOTIFICATION_LEAD_TIME_MINUTES
 )
 
 class AppPreferences(private val context: Context) {
@@ -85,8 +86,19 @@ class AppPreferences(private val context: Context) {
             tapAction = runCatching { TapAction.valueOf(tapActionName) }.getOrDefault(TapAction.OPEN_APP),
             launcherIconStyle = LauncherIconStyle.fromId(iconId),
             previewRoom = prefs.getString(KEY_PREVIEW_ROOM, DEFAULT_PREVIEW_ROOM) ?: DEFAULT_PREVIEW_ROOM,
-            countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN_ENABLED, false)
+            countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN_ENABLED, false),
+            notificationLeadTimeMinutes = prefs.getInt(
+                KEY_NOTIFICATION_LEAD_TIME_MINUTES,
+                DEFAULT_NOTIFICATION_LEAD_TIME_MINUTES
+            ).coerceIn(MIN_NOTIFICATION_LEAD_TIME_MINUTES, MAX_NOTIFICATION_LEAD_TIME_MINUTES)
         )
+    }
+
+    fun setNotificationLeadTimeMinutes(minutes: Int) {
+        prefs.edit().putInt(
+            KEY_NOTIFICATION_LEAD_TIME_MINUTES,
+            minutes.coerceIn(MIN_NOTIFICATION_LEAD_TIME_MINUTES, MAX_NOTIFICATION_LEAD_TIME_MINUTES)
+        ).apply()
     }
 
     fun setCountdownEnabled(enabled: Boolean) {
@@ -245,6 +257,11 @@ class AppPreferences(private val context: Context) {
         const val KEY_COUNTDOWN_Y_POSITION = "key_countdown_y_position"
         const val KEY_COUNTDOWN_TEXT_SCALE_X = "key_countdown_text_scale_x"
         const val KEY_COUNTDOWN_BOLDNESS = "key_countdown_boldness"
+        const val KEY_NOTIFICATION_LEAD_TIME_MINUTES = "key_notification_lead_time_minutes"
+
+        const val DEFAULT_NOTIFICATION_LEAD_TIME_MINUTES = 30
+        const val MIN_NOTIFICATION_LEAD_TIME_MINUTES = 0
+        const val MAX_NOTIFICATION_LEAD_TIME_MINUTES = 300
 
         const val KEY_TOKEN = "key_token"
         const val KEY_PUPIL_ID = "key_pupil_id"
