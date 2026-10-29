@@ -1260,11 +1260,44 @@ fun IconTab(viewModel: MainViewModel) {
 
                         // Render Sliders according to selected target
                         if (selectedTarget == SliderConfigTarget.ROOM_NUMBER) {
+                            // Auto-size toggle row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Auto-size Font",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = if (settings.autoSize) {
+                                            "Sizes font up to touch left and right edges"
+                                        } else {
+                                            "Disabled • Fixed font size from slider below"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.autoSize,
+                                    onCheckedChange = { viewModel.setAutoSize(it) }
+                                )
+                            }
+
                             ScalingSliderItem(
                                 label = "Room Text Size",
-                                valueText = String.format(Locale.US, "%.0f px", settings.fontSize),
+                                valueText = if (settings.autoSize) "Auto" else String.format(Locale.US, "%.0f px", settings.fontSize),
                                 value = settings.fontSize,
                                 valueRange = AppPreferences.MIN_FONT_SIZE..AppPreferences.MAX_FONT_SIZE,
+                                enabled = !settings.autoSize,
                                 onValueChange = { viewModel.setFontSize(it) }
                             )
 
@@ -1301,11 +1334,44 @@ fun IconTab(viewModel: MainViewModel) {
                                 }
                             }
                         } else {
+                            // Auto-size toggle row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Auto-size Font",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = if (settings.countdownAutoSize) {
+                                            "Sizes font up to touch left and right edges"
+                                        } else {
+                                            "Disabled • Fixed font size from slider below"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.countdownAutoSize,
+                                    onCheckedChange = { viewModel.setCountdownAutoSize(it) }
+                                )
+                            }
+
                             ScalingSliderItem(
                                 label = "Countdown Text Size",
-                                valueText = String.format(Locale.US, "%.0f px", settings.countdownFontSize),
+                                valueText = if (settings.countdownAutoSize) "Auto" else String.format(Locale.US, "%.0f px", settings.countdownFontSize),
                                 value = settings.countdownFontSize,
                                 valueRange = AppPreferences.MIN_FONT_SIZE..AppPreferences.MAX_FONT_SIZE,
+                                enabled = !settings.countdownAutoSize,
                                 onValueChange = { viewModel.setCountdownFontSize(it) }
                             )
 
@@ -1375,6 +1441,7 @@ private fun ScalingSliderItem(
     valueText: String,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
+    enabled: Boolean = true,
     onValueChange: (Float) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1387,13 +1454,14 @@ private fun ScalingSliderItem(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier.weight(1f, fill = false)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = valueText,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 maxLines = 1
             )
         }
@@ -1401,6 +1469,7 @@ private fun ScalingSliderItem(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
     }

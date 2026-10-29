@@ -48,11 +48,13 @@ data class IconSettings(
     val yPosition: Float = AppPreferences.DEFAULT_Y_POSITION,
     val textScaleX: Float = AppPreferences.DEFAULT_TEXT_SCALE_X,
     val boldness: Float = AppPreferences.DEFAULT_BOLDNESS,
+    val autoSize: Boolean = false,
     // Minutes left countdown icon configuration
     val countdownFontSize: Float = AppPreferences.DEFAULT_FONT_SIZE,
     val countdownYPosition: Float = AppPreferences.DEFAULT_Y_POSITION,
     val countdownTextScaleX: Float = AppPreferences.DEFAULT_TEXT_SCALE_X,
     val countdownBoldness: Float = AppPreferences.DEFAULT_BOLDNESS,
+    val countdownAutoSize: Boolean = false,
     val priorityMode: PriorityMode = PriorityMode.FORCED_HIGH,
     val tapAction: TapAction = TapAction.OPEN_APP,
     val launcherIconStyle: LauncherIconStyle = LauncherIconStyle.STYLE_1,
@@ -78,10 +80,12 @@ class AppPreferences(private val context: Context) {
             yPosition = prefs.getFloat(KEY_Y_POSITION, DEFAULT_Y_POSITION),
             textScaleX = prefs.getFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X),
             boldness = prefs.getFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS),
+            autoSize = prefs.getBoolean(KEY_AUTO_SIZE, false),
             countdownFontSize = prefs.getFloat(KEY_COUNTDOWN_FONT_SIZE, DEFAULT_FONT_SIZE),
             countdownYPosition = prefs.getFloat(KEY_COUNTDOWN_Y_POSITION, DEFAULT_Y_POSITION),
             countdownTextScaleX = prefs.getFloat(KEY_COUNTDOWN_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X),
             countdownBoldness = prefs.getFloat(KEY_COUNTDOWN_BOLDNESS, DEFAULT_BOLDNESS),
+            countdownAutoSize = prefs.getBoolean(KEY_COUNTDOWN_AUTO_SIZE, false),
             priorityMode = runCatching { PriorityMode.valueOf(priorityName) }.getOrDefault(PriorityMode.FORCED_HIGH),
             tapAction = runCatching { TapAction.valueOf(tapActionName) }.getOrDefault(TapAction.OPEN_APP),
             launcherIconStyle = LauncherIconStyle.fromId(iconId),
@@ -125,6 +129,10 @@ class AppPreferences(private val context: Context) {
         prefs.edit().putFloat(KEY_BOLDNESS, boldness.coerceIn(MIN_BOLDNESS, MAX_BOLDNESS)).apply()
     }
 
+    fun setAutoSize(autoSize: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_SIZE, autoSize).apply()
+    }
+
     fun setCountdownFontSize(size: Float) {
         prefs.edit().putFloat(KEY_COUNTDOWN_FONT_SIZE, size.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)).apply()
     }
@@ -139,6 +147,10 @@ class AppPreferences(private val context: Context) {
 
     fun setCountdownBoldness(boldness: Float) {
         prefs.edit().putFloat(KEY_COUNTDOWN_BOLDNESS, boldness.coerceIn(MIN_BOLDNESS, MAX_BOLDNESS)).apply()
+    }
+
+    fun setCountdownAutoSize(autoSize: Boolean) {
+        prefs.edit().putBoolean(KEY_COUNTDOWN_AUTO_SIZE, autoSize).apply()
     }
 
     fun setPreviewRoom(room: String) {
@@ -159,6 +171,7 @@ class AppPreferences(private val context: Context) {
             .putFloat(KEY_Y_POSITION, DEFAULT_Y_POSITION)
             .putFloat(KEY_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X)
             .putFloat(KEY_BOLDNESS, DEFAULT_BOLDNESS)
+            .putBoolean(KEY_AUTO_SIZE, false)
             .apply()
     }
 
@@ -168,6 +181,7 @@ class AppPreferences(private val context: Context) {
             .putFloat(KEY_COUNTDOWN_Y_POSITION, DEFAULT_Y_POSITION)
             .putFloat(KEY_COUNTDOWN_TEXT_SCALE_X, DEFAULT_TEXT_SCALE_X)
             .putFloat(KEY_COUNTDOWN_BOLDNESS, DEFAULT_BOLDNESS)
+            .putBoolean(KEY_COUNTDOWN_AUTO_SIZE, false)
             .apply()
     }
 
@@ -247,6 +261,7 @@ class AppPreferences(private val context: Context) {
         const val KEY_Y_POSITION = "key_y_position"
         const val KEY_TEXT_SCALE_X = "key_text_scale_x"
         const val KEY_BOLDNESS = "key_boldness"
+        const val KEY_AUTO_SIZE = "key_auto_size"
         const val KEY_PRIORITY_MODE = "key_priority_mode"
         const val KEY_TAP_ACTION = "key_tap_action"
         const val KEY_LAUNCHER_ICON_STYLE = "key_launcher_icon_style"
@@ -257,6 +272,7 @@ class AppPreferences(private val context: Context) {
         const val KEY_COUNTDOWN_Y_POSITION = "key_countdown_y_position"
         const val KEY_COUNTDOWN_TEXT_SCALE_X = "key_countdown_text_scale_x"
         const val KEY_COUNTDOWN_BOLDNESS = "key_countdown_boldness"
+        const val KEY_COUNTDOWN_AUTO_SIZE = "key_countdown_auto_size"
         const val KEY_NOTIFICATION_LEAD_TIME_MINUTES = "key_notification_lead_time_minutes"
 
         const val DEFAULT_NOTIFICATION_LEAD_TIME_MINUTES = 30

@@ -262,6 +262,15 @@ class MainViewModel(
         updatePreviewBitmaps()
     }
 
+    fun setAutoSize(autoSize: Boolean) {
+        preferences.setAutoSize(autoSize)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+        if (_settings.value.isEnabled) {
+            ClassBarService.startOrRefresh(appContext)
+        }
+    }
+
     fun setCountdownFontSize(size: Float) {
         preferences.setCountdownFontSize(size)
         _settings.value = preferences.loadSettings()
@@ -284,6 +293,15 @@ class MainViewModel(
         preferences.setCountdownBoldness(boldness)
         _settings.value = preferences.loadSettings()
         updatePreviewBitmaps()
+    }
+
+    fun setCountdownAutoSize(autoSize: Boolean) {
+        preferences.setCountdownAutoSize(autoSize)
+        _settings.value = preferences.loadSettings()
+        updatePreviewBitmaps()
+        if (_settings.value.isEnabled) {
+            ClassBarService.startOrRefresh(appContext)
+        }
     }
 
     fun setPreviewRoom(room: String) {
