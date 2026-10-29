@@ -11,6 +11,8 @@ captures
 META-INF/
 *.apk
 *.aab
+*.keystore
+*.jks
 .wip/
 .agents/
 /RULES.md

@@ -24,6 +24,13 @@ android {
 
     signingConfigs {
         getByName("debug") {
+            val localKeystore = rootProject.file("app/classbar.keystore")
+            if (localKeystore.exists()) {
+                storeFile = localKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
             enableV1Signing = true
             enableV2Signing = true
         }
@@ -32,9 +39,11 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
