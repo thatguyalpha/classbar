@@ -5,8 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import androidx.core.graphics.drawable.IconCompat
+import kotlin.math.abs
 
 object ClassBarIconGenerator {
 
@@ -44,6 +46,48 @@ object ClassBarIconGenerator {
     }
 
     /**
+     * Calculates the optimal font size so that [text] touches the left and right edges of the canvas
+     * (target width = [targetWidth]), while not exceeding the vertical bounds [maxHeight].
+     */
+    fun calculateAutosizedFontSize(
+        text: String,
+        typeface: Typeface,
+        textScaleX: Float,
+        boldness: Float,
+        targetWidth: Float = 94f,
+        maxHeight: Float = 86f
+    ): Float {
+        if (text.isBlank()) return AppPreferences.DEFAULT_FONT_SIZE
+
+        val baseSize = 100f
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.typeface = typeface
+            this.textSize = baseSize
+            this.textScaleX = textScaleX
+        }
+
+        val bounds = Rect()
+        paint.getTextBounds(text, 0, text.length, bounds)
+        val boundsWidth = bounds.width().toFloat()
+        val measureWidth = paint.measureText(text)
+        val baseWidth = maxOf(boundsWidth, measureWidth).coerceAtLeast(1f)
+
+        // Effective available width and height taking stroke width (boldness) into account
+        val availableWidth = (targetWidth - boldness).coerceAtLeast(10f)
+        val availableHeight = (maxHeight - boldness).coerceAtLeast(10f)
+
+        val sizeFromWidth = baseSize * (availableWidth / baseWidth)
+
+        val boundsHeight = bounds.height().toFloat()
+        val metrics = paint.fontMetrics
+        val baseHeight = if (boundsHeight > 0f) boundsHeight else abs(metrics.ascent) * 0.75f
+        val sizeFromHeight = baseSize * (availableHeight / baseHeight.coerceAtLeast(1f))
+
+        val optimalSize = minOf(sizeFromWidth, sizeFromHeight)
+        return optimalSize.coerceIn(AppPreferences.MIN_FONT_SIZE, 120f)
+    }
+
+    /**
      * Renders a 96x96 status bar icon showing the room number (e.g. "307", "24", "102").
      */
     fun renderRoomBitmap(
@@ -51,7 +95,8 @@ object ClassBarIconGenerator {
         textSize: Float = AppPreferences.DEFAULT_FONT_SIZE,
         yPosition: Float = AppPreferences.DEFAULT_Y_POSITION,
         textScaleX: Float = AppPreferences.DEFAULT_TEXT_SCALE_X,
-        boldness: Float = AppPreferences.DEFAULT_BOLDNESS
+        boldness: Float = AppPreferences.DEFAULT_BOLDNESS,
+        autoSize: Boolean = false
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(ICON_WIDTH, ICON_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -59,24 +104,63 @@ object ClassBarIconGenerator {
 
         val typeface = resolvePixelStatusBarTypeface(boldness)
 
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            textAlign = Paint.Align.CENTER
-            this.typeface = typeface
-            this.textSize = textSize
-            this.textScaleX = textScaleX
+        val effectiveFontSize: Float
+        val effectiveYPosition: Float
 
-            if (boldness > 0f) {
-                style = Paint.Style.FILL_AND_STROKE
-                strokeWidth = boldness
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-            } else {
-                style = Paint.Style.FILL
+        if (autoSize && roomText.isNotBlank()) {
+            effectiveFontSize = calculateAutosizedFontSize(
+                text = roomText,
+                typeface = typeface,
+                textScaleX = textScaleX,
+                boldness = boldness
+            )
+
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textAlign = Paint.Align.CENTER
+                this.typeface = typeface
+                this.textSize = effectiveFontSize
+                this.textScaleX = textScaleX
+
+                if (boldness > 0f) {
+                    style = Paint.Style.FILL_AND_STROKE
+                    strokeWidth = boldness
+                    strokeJoin = Paint.Join.ROUND
+                    strokeCap = Paint.Cap.ROUND
+                } else {
+                    style = Paint.Style.FILL
+                }
             }
+
+            val metrics = textPaint.fontMetrics
+            val visualCenterOffset = (metrics.ascent + metrics.descent) / 2f
+            val yOffset = yPosition - AppPreferences.DEFAULT_Y_POSITION
+            effectiveYPosition = (ICON_HEIGHT / 2f - visualCenterOffset) + yOffset
+            canvas.drawText(roomText, CENTER_X, effectiveYPosition, textPaint)
+        } else {
+            effectiveFontSize = textSize
+            effectiveYPosition = yPosition
+
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textAlign = Paint.Align.CENTER
+                this.typeface = typeface
+                this.textSize = effectiveFontSize
+                this.textScaleX = textScaleX
+
+                if (boldness > 0f) {
+                    style = Paint.Style.FILL_AND_STROKE
+                    strokeWidth = boldness
+                    strokeJoin = Paint.Join.ROUND
+                    strokeCap = Paint.Cap.ROUND
+                } else {
+                    style = Paint.Style.FILL
+                }
+            }
+
+            canvas.drawText(roomText, CENTER_X, effectiveYPosition, textPaint)
         }
 
-        canvas.drawText(roomText, CENTER_X, yPosition, textPaint)
         return bitmap
     }
 
@@ -89,7 +173,8 @@ object ClassBarIconGenerator {
             textSize = settings.fontSize,
             yPosition = settings.yPosition,
             textScaleX = settings.textScaleX,
-            boldness = settings.boldness
+            boldness = settings.boldness,
+            autoSize = settings.autoSize
         )
     }
 
@@ -102,7 +187,8 @@ object ClassBarIconGenerator {
             textSize = settings.countdownFontSize,
             yPosition = settings.countdownYPosition,
             textScaleX = settings.countdownTextScaleX,
-            boldness = settings.countdownBoldness
+            boldness = settings.countdownBoldness,
+            autoSize = settings.countdownAutoSize
         )
     }
 
