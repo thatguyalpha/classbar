@@ -12,3 +12,4 @@ META-INF/
 *.apk
 *.aab
 .wip/
+.agents/
