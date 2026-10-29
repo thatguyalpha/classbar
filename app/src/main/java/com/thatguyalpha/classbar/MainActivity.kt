@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -424,7 +425,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     )
                 )
 
-                // Top Two Tabs: Lessons and Icon
+                // Top Two Tabs: Lessons and Settings
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.colorScheme.surface
@@ -433,13 +434,18 @@ fun MainScreen(viewModel: MainViewModel) {
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
                         text = { Text("Lessons") },
-                        icon = { Icon(Icons.Default.FormatListNumbered, contentDescription = "Lessons") }
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_tab_lessons),
+                                contentDescription = "Lessons"
+                            )
+                        }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Icon") },
-                        icon = { Icon(Icons.Default.Tune, contentDescription = "Icon") }
+                        text = { Text("Settings") },
+                        icon = { Icon(Icons.Default.Tune, contentDescription = "Settings") }
                     )
                 }
             }
